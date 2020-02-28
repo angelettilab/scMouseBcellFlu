@@ -1,0 +1,11 @@
+# Mac temp files
+.DS_Store
+
+# data, log, and results files
+/data
+/log
+/doc
+/analysis*
+
+# report output files
+*.html
