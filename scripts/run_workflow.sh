@@ -1,20 +1,11 @@
 #! /bin/bash -l
-#SBATCH -A projID
-#SBATCH -p core
-#SBATCH -n 8
-#SBATCH -J Proj
-#SBATCH -t 10:00:00
-#SBATCH --mail-user username@email.com
-#SBATCH --mail-type=END
-
-
 
 ########################
 ### DEFINE VARIABLES ###
 ########################
 var_to_plot='dataset,mouse_nr,day_post_infection,organ,infection'
 var_to_regress='nFeature_RNA,percent_mito,S.Score,G2M.Score'
-main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/data'
+main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
 script_path='/Users/jonrob/Documents/NBIS/repos/sauron/scripts'
 
 cd $main
@@ -25,7 +16,8 @@ mkdir log
 ##################################
 ### ACTIVATE CONDA ENVIRONMENT ###
 ##################################
-conda activate sauron-env
+# conda activate sauron-env  # macOS (local)
+source activate Sauron.v1  # linux/unix (cluster)
 
 
 #####################
@@ -34,7 +26,6 @@ conda activate sauron-env
 
 # - Rename all "features.tsv" to "genes.tsv"
 # - Remove all zipped (.gz) versions of data
-# - Use "metadata_smallrun.csv" for a small subset of the data (no replicates)
 # - Use "metadata.csv" to include ALL data
 # - Outputs object as "raw_seurat_object.rds"
 Rscript $script_path/00_load_data.R \
@@ -141,7 +132,7 @@ Rscript $script_path/04_diff_gene_expr.R \
 # - Prediction is currently based on correlation, but other packages may be implemented later
 Rscript $script_path/cell_type_prediction.R \
 --Seurat_object_path $main/'analysis/02_cluster/seurat_object.rds' \
---marker_lists $main/'data/cell_markers/main_cell_types.csv' \
+--marker_lists $script_path/../'support_files/cell_markers/main_cell_types.csv' \
 --cluster_use 'HC_12' \
 --assay 'RNA' \
 --output_path $main/'analysis/02_cluster/cell_type_prediction' \
@@ -238,18 +229,18 @@ Rscript $script_path/04_diff_gene_expr.R \
 ############################
 Rscript $script_path/cell_type_prediction.R \
 --Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
---marker_lists $main/'data/cell_markers/main_cell_types.csv' \
+--marker_lists $script_path/../'support_files/cell_markers/main_cell_types.csv' \
 --cluster_use 'HC_15' \
 --assay 'RNA' \
 --output_path $main/'analysis/04_cluster/cell_type_prediction' \
 2>&1 | tee $main/'log/04_cell_type_prediction_log.txt'
 
-# The only cluster that really stood out was #15, which was associated with elevated
+# The only cluster that really stood out was #14, which was associated with elevated
 # expression in Fcer1g, Tyrobp, Lgals3, Alox5ap, Ifitm3, Lyz2, Ctsb, and Ccl6,
 # which are generally associated with macrophages, NK cells, and/or T-cells, rather
 # than B-cells.
 #
-# The pipeline will be re-run after removing cluster #15.
+# The pipeline will be re-run after removing cluster #14.
 
 
 
@@ -257,14 +248,14 @@ Rscript $script_path/cell_type_prediction.R \
 ### RUN DATA INTEGRATION, NORMALIZE AND GET VARIABLE GENES ###
 ##############################################################
 
-# Re-integrate and normalize data with suspected non-B-cell cluster #15 removed
+# Re-integrate and normalize data with suspected non-B-cell cluster #14 removed
 Rscript $script_path/02_integrate.R \
 --Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
 --columns_metadata $var_to_plot \
 --regress $var_to_regress \
 --var_genes 'seurat' \
 --integration_method 'mnn,dataset' \
---cluster_use 'HC_15,1,2,3,4,5,6,7,8,9,10,11,12,13,14' \
+--cluster_use 'HC_15,1,2,3,4,5,6,7,8,9,10,11,12,13,15' \
 --assay 'RNA' \
 --output_path $main/'analysis/06_cluster' \
 2>&1 | tee $main/log/'06_integrate_log.txt'
@@ -320,7 +311,7 @@ Rscript $script_path/04_diff_gene_expr.R \
 ############################
 Rscript $script_path/cell_type_prediction.R \
 --Seurat_object_path $main/'analysis/06_cluster/seurat_object.rds' \
---marker_lists $main/'data/cell_markers/main_cell_types.csv' \
+--marker_lists $script_path/../'support_files/cell_markers/main_cell_types.csv' \
 --cluster_use 'HC_11' \
 --assay 'RNA' \
 --output_path $main/'analysis/06_cluster/cell_type_prediction' \
@@ -362,9 +353,6 @@ Rscript $script_path/VDJ_analysis.R \
 --assay 'RNA' \
 --output_path $main/'analysis/08_VDJ_analysis_unpaired' \
 2>&1 | tee $main/log/'08_VDJ_analysis_unpaired_log.txt'
-
-
-
 
 
 
