@@ -9,3 +9,6 @@
 
 # report output files
 *.html
+
+# singularity image files
+*.sif
