@@ -1,0 +1,33 @@
+NaiveBcell 
+"Ighd"
+MarginalZone
+"Cd1d1"
+PlasmaCells
+PC <- c("Bhlha15", "Sdc1", "Prdm1", "Irf4", "Xbp1", "Atf6", "Creb3", "Cd28", "Ly6c1", "Il13ra1", "Itgb5", "Selplg", "Lgals1")
+GerminalCenter
+"Aicda"
+MemoryCells
+Bmem <- c("Pml", "Phf21a", "Runx3", "Klf9", "Zbtb20", "Kmt2c", "Ski", "Tcf4", "Bmi1", "Cd80", "Il6ra", "Itgb7", "Ccr6", "Pecam1", "Nid1", "Rgmb", "Ackr3", "Cdh17", "Ackr2", "Itga4", "Naip2", "Birc6", "Bcl2", "Traf1", "Malt1", "Ccnd3", "Rb1")
+
+GerminalCenter can be subdivided into Light zone (LZ) and Dark Zone (DZ)
+
+DZ
+DZ.genes <- c("Pif1", "Otub2", "Psrc1", "Lrrc49", "Ccnb2", "Mnd1", "Lgr5", "Adhfe1", "Pafah1b3", "Hmmr", "Tifa", "Reln", "Sepp1", "Cdkn3", "Gcnt3", "Cdc20", "Ube2c", "Serinc5", "Cenpa", "Ccnb1", "Plk1", "Cenpf", "Tgfa", "Tpx2", "Depdc1b", "Gpd1l", "Polh", "Cep55", "Nek2", "Zkscan16", "Lmo4", "Gas2l3", "Ptgr1", "Aspm", "Rnf125", "Cxcr4", "Kif20a", "Kif2c", "Rabgap1l", "Bub1", "Nebl", "Lig4", "Neil1", "Pde2a", "Ehf", "Racgap1", "Cdca8", "Cdc14b", "Cdc25c", "Lipc", "Mprip", "Aurka", "Gpsm2", "Spdya", "Akap12", "Kif22", "Birc5", "Pfn2", "Ddx19a", "Ldlrad4", "Gcsam")
+
+LZ
+LZ.genes <- c("Egr1", "Egr2", "Ccnd2", "Cd69", "Cd86", "Cd40", "Slamf1", "Ifi30", "Myc","S1pr3", "Il4i1", "Ccr6", "Cd83", "Gpr183", "Nfkbia", "Plscr1", "Socs3", "Lifr", "Bcl2a1a", "Bcl2a1d", "Bcl2a1b", "Hhex", "Dock10", "Hivep3", "Samsn1", "Irf4", "Gimap4", "Ptger4",  "Fscn1", "Marcks", "Ier2", "Snn", "Bhlhe40", "Slpi", "Matr3", "Rapgef4", "Rilpl2", "Gadd45g", "Cfp", "Tyms", "Mdn1")
+
+DZ and LZ can be further roughly subdivided depending on cell cycle score and function
+Generally light zone cells are in G1 and S. DZ cellsare in S, G2/M and G1
+
+LZ cells in S are entering dark zone
+DZ cells in G1 are exiting DZ and entering LZ
+
+LZcells receiving Tfh cells signals to enter/exit the GC
+LZ.help <- c("Itgb2", "Cxcr5", "Tgfbr2", "Il21r", "Ebf1", "Irf8", "Nfkb2", "Icosl", "Slamf1", "Tnfrsf13c")
+
+Cell in the lightzone Reentering to DZ
+DZ.reentry <- c("Aicda", "Cxcr4", "Xrcc4", "Cd24a", "Mki67", "Foxo1", "Tcf3")
+
+Pre-memory cells
+Premem <- c("Pbx3", "Ncoa1", "Etv6", "Efnb1", "S1pr3", "Bmpr1a", "Cd86", "Cd59a")

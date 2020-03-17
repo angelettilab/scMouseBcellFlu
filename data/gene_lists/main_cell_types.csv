@@ -1,0 +1,10 @@
+﻿T_cell;B_cell;NK_cell;Neutrophil;RBC;Fibroblast;Endothelial;Myocyte;Adipocyte;Epithelial;Macrophage;Platelet;DC;FCGR3A_mono;CD14_mono
+Cd3g;Cd79a;Nkg7;S100a8;Hbb-bt;Col11a1;Tmem100;Myod1;Fabp7;Krt5;Lyz2;Ppbp;FCER1A;FCGR3A;CD14
+Thy1;CD74;Nrc1;S100a9;Alas2;Col1a1;Egfl7;Des;Plp1;Krt14;Ms4a6d;gp9;Clec10A;MS4A7;Lyz
+Cd3e;Ebf1;Gzmb;Retnlg;Snca;Col1a2;Ramp2;Actc1;Sox10;Perp;Ctss;cd9;CST3;;
+Cd3d;Ms4a1;Gzma;Wfdc17;Hba-a2;Gsn;Cldn5;Tnnt1;Moxd1;Sfn;;clu;;;
+;Cd79b;Klre;G0s2;Hba-a1;Fbln2;Epas1;Myog;Phactr1;;;;;;
+;Cd83;Klra3;Wfdc21;Hbb-bs;Thy1;Calcrl;Tnnt2;;;;;;;
+;;Klrd1;Msrb1;Hbb-y;;Tspan7;Ttn;;;;;;;
+;;GNLY;;Hbb-bh1;;Aqp1;;;;;;;;
+;;;;;;Gpihbp1;;;;;;;;
