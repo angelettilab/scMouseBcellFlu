@@ -1,10 +1,15 @@
 # Mac temp files
 .DS_Store
 
-# data, log, and results files
-/data
-/log
-/doc
+# specific data directories
+/data/cellranger
+/data/immcantation
+/data/Jay
+/data/VDJ_OTUs
+
+# log and result files
+/log*
+/doc*
 /analysis*
 
 # report output files
@@ -12,3 +17,8 @@
 
 # singularity image files
 *.sif
+
+# Word docs
+*.doc
+*.docx
+
