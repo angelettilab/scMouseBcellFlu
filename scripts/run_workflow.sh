@@ -5,8 +5,10 @@
 ########################
 var_to_plot='dataset,mouse_nr,day_post_infection,organ,infection'
 var_to_regress='nFeature_RNA,percent_mito,S.Score,G2M.Score'
-main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
-script_path='/Users/jonrob/Documents/NBIS/repos/sauron/scripts'
+main='/home/jonrob/projects/d_angeletti_1910'
+script_path='/home/jonrob/repos/sauron/scripts'
+# main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
+# script_path='/Users/jonrob/Documents/NBIS/repos/sauron/scripts'
 
 cd $main
 mkdir analysis
