@@ -101,8 +101,8 @@ Rscript $script_path/03_dr_and_cluster.R \
 --output_path $main/'analysis/02_cluster' \
 2>&1 | tee $main/log/'03_dr_and_cluster_log.txt'
 
-At this point, we choose a clustering result yielding many small clusters
-to help remove all non-B-cells from the data
+# At this point, we choose a clustering result yielding many small clusters
+# to help remove all non-B-cells from the data
 
 
 ########################################
