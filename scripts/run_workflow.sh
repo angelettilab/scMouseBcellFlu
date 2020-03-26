@@ -93,13 +93,16 @@ Rscript $script_path/03_dr_and_cluster.R \
 --PCs_use 'var,1' \
 --var_genes 'seurat' \
 --dim_reduct_use 'umap' \
+--dim_reduct_params 'umap, n.neighbors=30, min.dist=0.01, spread=3, n.epochs=500, learning.rate=0.5; umap10, n.neighbors=30, min.dist=0.01, n.epochs=500' \
+--pre_dim_reduct 'mnn' \
 --cluster_use 'none' \
 --cluster_method 'HC,louvain' \
---assay 'mnn' \
+--assay 'RNA' \
 --output_path $main/'analysis/02_cluster' \
-2>&1 | tee $main/log/'02_dr_and_cluster_log.txt'
+2>&1 | tee $main/log/'03_dr_and_cluster_log.txt'
 
-# HC cluster #12 seemed to yield a reasonable grouping of cells
+At this point, we choose a clustering result yielding many small clusters
+to help remove all non-B-cells from the data
 
 
 ########################################
