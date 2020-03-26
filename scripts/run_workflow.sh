@@ -254,7 +254,7 @@ Rscript $script_path/cell_type_prediction.R \
 # - only_coding_cdr3 - only select options that actually code for something
 # - same_scale - for different metadata comparisons
 Rscript $script_path/VDJ_analysis.R \
---Seurat_object_path $main/'analysis/06_cluster/seurat_object.rds' \
+--Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
 --VDJ_annotation_path $main/'data/VDJ_OTUs' \
 --columns_metadata 'infection,organ' \
 --top_TCRs '10' \
@@ -262,12 +262,12 @@ Rscript $script_path/VDJ_analysis.R \
 --only_coding_cdr3 'true' \
 --same_scale 'true' \
 --assay 'RNA' \
---output_path $main/'analysis/08_VDJ_analysis_paired' \
-2>&1 | tee $main/log/'08_VDJ_analysis_paired_log.txt'
+--output_path $main/'analysis/06_VDJ_analysis_paired' \
+2>&1 | tee $main/log/'13_VDJ_analysis_paired_log.txt'
 
 # run again, but unpaired
 Rscript $script_path/VDJ_analysis.R \
---Seurat_object_path $main/'analysis/06_cluster/seurat_object.rds' \
+--Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
 --VDJ_annotation_path $main/'data/VDJ_OTUs' \
 --columns_metadata 'infection,organ' \
 --top_TCRs '10' \
@@ -275,9 +275,8 @@ Rscript $script_path/VDJ_analysis.R \
 --only_coding_cdr3 'true' \
 --same_scale 'true' \
 --assay 'RNA' \
---output_path $main/'analysis/08_VDJ_analysis_unpaired' \
-2>&1 | tee $main/log/'08_VDJ_analysis_unpaired_log.txt'
-
+--output_path $main/'analysis/06_VDJ_analysis_unpaired' \
+2>&1 | tee $main/log/'14_VDJ_analysis_unpaired_log.txt'
 
 
 
