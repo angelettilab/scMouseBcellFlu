@@ -223,95 +223,25 @@ Rscript $script_path/04_diff_gene_expr.R \
 ############################
 Rscript $script_path/cell_type_prediction.R \
 --Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
---marker_lists $script_path/../'support_files/cell_markers/main_cell_types.csv' \
---cluster_use 'HC_15' \
+--marker_lists $main/'data/gene_lists/main_cell_types.csv' \
+--clustering_use 'louvain_0.5' \
 --assay 'RNA' \
 --output_path $main/'analysis/04_cluster/cell_type_prediction' \
-2>&1 | tee $main/'log/04_cell_type_prediction_log.txt'
-
-# The only cluster that really stood out was #14, which was associated with elevated
-# expression in Fcer1g, Tyrobp, Lgals3, Alox5ap, Ifitm3, Lyz2, Ctsb, and Ccl6,
-# which are generally associated with macrophages, NK cells, and/or T-cells, rather
-# than B-cells.
-#
-# The pipeline will be re-run after removing cluster #14.
+2>&1 | tee $main/'log/11_cell_type_prediction_log.txt'
 
 
 
-##############################################################
-### RUN DATA INTEGRATION, NORMALIZE AND GET VARIABLE GENES ###
-##############################################################
-
-# Re-integrate and normalize data with suspected non-B-cell cluster #14 removed
-Rscript $script_path/02_integrate.R \
---Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
---columns_metadata $var_to_plot \
---regress $var_to_regress \
---var_genes 'seurat' \
---integration_method 'mnn,dataset' \
---cluster_use 'HC_15,1,2,3,4,5,6,7,8,9,10,11,12,13,15' \
---assay 'RNA' \
---output_path $main/'analysis/06_cluster' \
-2>&1 | tee $main/log/'06_integrate_log.txt'
-
-
-###################################################
-### RUN DIMENSIONALITY REDUCTION AND CLUSTERING ###
-###################################################
-Rscript $script_path/03_dr_and_cluster.R \
---Seurat_object_path $main/'analysis/06_cluster/seurat_object.rds' \
---columns_metadata $var_to_plot \
---regress $var_to_regress \
---PCs_use 'var,1' \
---var_genes 'seurat' \
---dim_reduct_use 'umap' \
---cluster_use 'none' \
---cluster_method 'HC,louvain' \
---assay 'mnn' \
---output_path $main/'analysis/06_cluster' \
-2>&1 | tee $main/log/'06_dr_and_cluster_log.txt'
-
-# HC cluster #11 appears to yield a reasonable grouping of cells
-
-
-########################################
-### RUN CLUSTER CORRELATION ANALYSIS ###
-########################################
-
-Rscript $script_path/05_cluster_correlation.R \
---Seurat_object_path $main/'analysis/06_cluster/seurat_object.rds' \
---clustering_use 'HC_11' \
---exclude_cluster 'NONE' \
---merge_cluster '0.95,0.9,0.85,0.8,0.75,0.7' \
---output_path $main/'analysis/06_cluster/cluster_correlations' \
-2>&1 | tee $main/'log/06_clust_corr.txt'
-
-
-###################################
-### RUN DIFFERENTIAL EXPRESSION ###
-###################################
-Rscript $script_path/04_diff_gene_expr.R \
---Seurat_object_path $main/'analysis/06_cluster/seurat_object.rds' \
---clustering_use 'HC_11' \
---metadata_use 'organ,infection' \
---exclude_cluster 'NONE' \
---assay 'RNA' \
---output_path $main/'analysis/07_diff_expr' \
-2>&1 | tee $main/'log/07_diff_expr_log.txt'
-
-
-############################
-### CELL TYPE PREDICTION ###
-############################
+################################
+### SUB-CELL TYPE PREDICTION ###
+################################
 Rscript $script_path/cell_type_prediction.R \
---Seurat_object_path $main/'analysis/06_cluster/seurat_object.rds' \
---marker_lists $script_path/../'support_files/cell_markers/main_cell_types.csv' \
---cluster_use 'HC_11' \
+--Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
+--marker_lists $main/'data/gene_lists/bcell_types.csv,'$main/'data/gene_lists/bcell_types_germsub.csv,'$main/'data/gene_lists/bcell_types_germsub_zonesub.csv' \
+--clustering_use 'louvain_0.5' \
 --assay 'RNA' \
---output_path $main/'analysis/06_cluster/cell_type_prediction' \
-2>&1 | tee $main/'log/06_cell_type_prediction_log.txt'
+--output_path $main/'analysis/04_cluster/cell_type_prediction' \
+2>&1 | tee $main/'log/12_cell_type_prediction_log.txt'
 
-# It seems that all of the non-B-cells have been removed at this point
 
 
 ########################
