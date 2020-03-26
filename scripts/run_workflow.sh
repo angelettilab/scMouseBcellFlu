@@ -110,11 +110,11 @@ Rscript $script_path/03_dr_and_cluster.R \
 ########################################
 Rscript $script_path/05_cluster_correlation.R \
 --Seurat_object_path $main/'analysis/02_cluster/seurat_object.rds' \
---clustering_use 'HC_12' \
+--clustering_use 'louvain_0.7' \
 --exclude_cluster 'NONE' \
 --merge_cluster '0.95,0.9,0.85,0.8,0.75,0.7' \
 --output_path $main/'analysis/02_cluster/cluster_correlations' \
-2>&1 | tee $main/'log/02_clust_corr.txt'
+2>&1 | tee $main/'log/04_clust_corr.txt'
 
 
 
@@ -123,12 +123,12 @@ Rscript $script_path/05_cluster_correlation.R \
 ###################################
 Rscript $script_path/04_diff_gene_expr.R \
 --Seurat_object_path $main/'analysis/02_cluster/seurat_object.rds' \
---clustering_use 'HC_12' \
+--clustering_use 'louvain_0.7' \
 --metadata_use 'organ,infection' \
 --exclude_cluster 'NONE' \
 --assay 'RNA' \
 --output_path $main/'analysis/03_diff_expr' \
-2>&1 | tee $main/'log/03_diff_expr_log.txt'
+2>&1 | tee $main/'log/05_diff_expr_log.txt'
 
 
 
