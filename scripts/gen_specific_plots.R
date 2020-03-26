@@ -1,24 +1,20 @@
 
-library(Seurat)
-library(ggplot2)
-library(dplyr)
-# source('/Users/jonrob/Documents/NBIS/repos/niceRplots/R/plotting_functions.R')
-
-# # color palette function
-# gg_color_hue <- function(n) {
-#   hues = seq(15, 375, length = n + 1)
-#   hcl(h = hues, l = 65, c = 100)[1:n]
-# }
+# load packages
+suppressMessages(suppressWarnings({
+  library(Seurat)
+  library(ggplot2)
+  library(dplyr)
+}))
 
 # specify relevant directories
-pdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/2020_DAngeletti/'  # parent directiory
+pdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/'  # parent directiory
 adir <- paste0(pdir,'analysis/')  # analysis subdirectory
 ddir <- paste0(pdir,'data/')  # data subdirectory
 
 # directories and clustering types to iterate through
-cdir <- paste0(adir, c('02_cluster/','04_cluster/','06_cluster/'))
-edir <- paste0(adir, c('03_diff_expr/','05_diff_expr/','07_diff_expr/'))
-clust_type <- c('HC_12','HC_15','HC_11')
+cdir <- paste0(adir, c('02_cluster/','04_cluster/'))
+edir <- paste0(adir, c('03_diff_expr/','05_diff_expr/'))
+clust_type <- c('louvain_0.7','louvain_0.5')
 
 # iterate through each pass
 for (i in 1:3){
