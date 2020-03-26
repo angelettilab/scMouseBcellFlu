@@ -17,17 +17,18 @@ edir <- paste0(adir, c('03_diff_expr/','05_diff_expr/'))
 clust_type <- c('louvain_0.7','louvain_0.5')
 
 # iterate through each pass
-for (i in 1:3){
+for (i in 1:length(cdir)){
+  
   # load Seurat object
   DATA <- readRDS(paste0(cdir[i],'seurat_object.rds'))
   
   # UMAP plot with metadata columns mapped as colors
-  metadata_fields <- c('organ','infection','day_post_infection')
+  metadata_fields <- c('organ','mouse_nr','day_post_infection')
   umap_data <- as.data.frame(DATA@reductions$umap@cell.embeddings)
   for (mf in metadata_fields){
     png(filename=paste0(cdir[i],'umap_plots/umap_metadata_',mf,'.png'), res=300, units='mm', width=170, height=130)
     print(ggplot(umap_data, aes(x=UMAP_1, y=UMAP_2, color=DATA@meta.data[[mf]])) +
-            geom_point(size=0.3, stroke=0) +
+            geom_point(size=0.4, stroke=0) +
             theme_classic() +
             theme(text = element_text(size=14, color='black'),
                   axis.text = element_text(size=12, color='black'),
