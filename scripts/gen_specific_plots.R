@@ -38,7 +38,7 @@ for (i in 1:length(cdir)){
   }
 
   # UMAP plot with QC feature (continuous data) mapped as color intensity
-  metadata_fields <- c('nCount_RNA','nFeature_RNA','S.Score')
+  metadata_fields <- c('nCount_RNA','nFeature_RNA','S.Score','perc_mito')
   col_scale <- c("grey85","navy")
   umap_data <- as.data.frame(DATA@reductions$umap@cell.embeddings)
   for (mf in metadata_fields){
