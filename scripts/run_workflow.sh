@@ -132,36 +132,22 @@ Rscript $script_path/04_diff_gene_expr.R \
 
 
 
-############################
-### CELL TYPE PREDICTION ###
-############################
+###########################
+## CELL TYPE PREDICTION ###
+###########################
 # - "main_cell_types" contains some cells, but many more types can be added (the group may have some in mind)
 # - Don't need to use DE to predict which cell types are which, we can use this annotation to define them ourselves
 # - Prediction is currently based on correlation, but other packages may be implemented later
 Rscript $script_path/cell_type_prediction.R \
 --Seurat_object_path $main/'analysis/02_cluster/seurat_object.rds' \
---marker_lists $script_path/../'support_files/cell_markers/main_cell_types.csv' \
---cluster_use 'HC_12' \
+--marker_lists $main/'data/gene_lists/main_cell_types.csv' \
 --assay 'RNA' \
+--clustering_use 'louvain_0.7' \
 --output_path $main/'analysis/02_cluster/cell_type_prediction' \
-2>&1 | tee $main/'log/02_cell_type_prediction_log.txt'
+2>&1 | tee $main/'log/06_cell_type_prediction_log.txt'
 
-# The resulting differentially expressed genes associated with each cluster were examined to
-# determine which clusters are unlikely to be B-cells.
-# Cluster  3: NK cells (Nkg7, Gzma, Klra4), T-cells (Ctsw, Ms4a4b, Ctla2a, Cd7),   
-# Cluster 12: NK cells (Nkg7, Gzma, Klra4), T-cells (Ctsw, Ms4a4b, Cd3d, Ctla2a, Cd7), 
-#
-# Cluster 8 is strange. Specific expression of Siglech suggests pDCs, and also Grn which 
-# seems to be specific to DCs based on data from the Blood Atlas. Klk1, Ctsl, and Bst2
-# (and Ctsb to a lesser extent) are quite specific to this cluster, though there is not much
-# information on these genes being specific for one cell type. Also, Cd7 is highly expressed
-# in cluster 8, though it is usually associated with NK and T-cells.
-# Cd79a, Cd79b, and Ebf1 are generally B-cell markers, but were lowly expressed in cluster 8
-# providing further evidence that this cluster is unlikely to be B-cells. 
-#
-# Cells belonging to these clusters (3, 8, and 12) will be removed from the data, and the pipeline
+# Cells that are NOT predicted as B-cells will be removed from the data, and the pipeline
 # re-run starting from the DATA INTEGRATION step.
-
 
 
 ##############################################################
