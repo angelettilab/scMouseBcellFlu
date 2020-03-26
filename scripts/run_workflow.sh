@@ -50,9 +50,12 @@ Rscript $script_path/01_qc_filter.R \
 --species_use 'mmusculus' \
 --remove_non_coding 'True' \
 --plot_gene_family 'RPS,RPL,mito,HB' \
+--keep_genes "$(cat $main/data/gene_lists/igh_genes_to_keep.txt)" \
 --remove_gene_family 'mito' \
 --min_gene_count '5' \
 --min_gene_per_cell '200' \
+--pct_mito_range '0,10' \
+--pct_ribo_range '0,25' \
 --assay 'RNA' \
 --output_path $main/'analysis/01_qc' \
 2>&1 | tee $main/log/'01_qc_log.txt'
