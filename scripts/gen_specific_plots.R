@@ -46,7 +46,7 @@ for (i in 1:length(cdir)){
     ggsave(p, filename=paste0('umap_metadata_',gsub('[.]','_',mf),'.png'), path=paste0(cdir[i],'umap_plots/'), dpi=300, units="mm", width=170, height=130, limitsize=F)
   }
 
-  # UMAP plot with HC clusters mapped as colors
+  # UMAP plot with clusters mapped as colors
   p <- DimPlot(DATA, dims=1:2, reduction='umap', group.by=clust_type[i], pt.size=0.1)
   ggsave(p, filename=paste0('clustering_',clust_type[i],'_umap.png'), path=paste0(cdir[i],'clustering/'), dpi=300, units="mm",
          width=170, height=150, limitsize=F)
@@ -57,8 +57,8 @@ for (i in 1:length(cdir)){
   DATA_markers <- read.csv2(paste0(edir[i],'/Cluster_marker_genes.csv'))
   DATA_markers %>% group_by(cluster) %>% top_n(3, avg_logFC) -> top3
   # heatmap showing top DE genes per cluster
-  png(filename=paste0(edir[i],'heatmap_genes_per_cluster_top3.png'), width=2000, height=800, res=150)
-  print(DoHeatmap(object=DATA, features=as.character(unique(top3$gene)), assay='RNA', slot='data'))
+  png(filename=paste0(edir[i],'heatmap_genes_per_cluster_top3.png'), width=2000, height=1000, res=150)
+  print(DoHeatmap(object=DATA, features=as.character(unique(top3$gene)), assay='RNA', label=F))
   invisible(dev.off())
   # violin plot showing top DE genes per cluster
   png(filename=paste0(edir[i],'violinPlot_genes_per_cluster_top3.png'), width=200*10, height=200*1.5*length(as.character(unique(top3$gene)))/3, res=150)
