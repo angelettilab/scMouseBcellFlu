@@ -52,13 +52,13 @@ if (opt$remove != 'none') {
   meta_cols <- colnames(DATA@meta.data)[match(meta_cols, casefold(colnames(DATA@meta.data)))]
   if (any(is.na(meta_cols))) {
     cat("Could not find the following columns in meta.data:\n")
-    cat(meta_cols[is.na(meta_cols)])
+    cat(unlist(lapply(remove_meta, function(x) x[1]))[is.na(meta_cols)])
     stop('Invalid meta data field.')
   }
   remove_meta <- lapply(remove_meta, function(x) x[-1])
   remove_cells <- matrix(FALSE, nrow=nrow(DATA@meta.data), ncol=length(remove_meta))
   for (i in 1:length(remove_meta)) {
-    remove_cells[, i] <- DATA@meta.data[[meta_cols[i]]] %in% remove_meta[[i]]
+    remove_cells[, i] <- casefold(DATA@meta.data[[meta_cols[i]]]) %in% casefold(remove_meta[[i]])
   }
 } else {
   remove_cells <- matrix(nrow=nrow(DATA@meta.data), ncol=0)
@@ -71,13 +71,13 @@ if (opt$keep != 'all') {
   meta_cols <- colnames(DATA@meta.data)[match(meta_cols, casefold(colnames(DATA@meta.data)))]
   if (any(is.na(meta_cols))) {
     cat("Could not find the following columns in meta.data:\n")
-    cat(meta_cols[is.na(meta_cols)])
+    cat(unlist(lapply(keep_meta, function(x) x[1]))[is.na(meta_cols)])
     stop('Invalid meta data field.')
   }
   keep_meta <- lapply(keep_meta, function(x) x[-1])
   keep_cells <- matrix(FALSE, nrow=nrow(DATA@meta.data), ncol=length(keep_meta))
   for (i in 1:length(keep_meta)) {
-    keep_cells[, i] <- DATA@meta.data[[meta_cols[i]]] %in% keep_meta[[i]]
+    keep_cells[, i] <- casefold(DATA@meta.data[[meta_cols[i]]]) %in% casefold(keep_meta[[i]])
   }
   remove_cells <- cbind(remove_cells, !keep_cells)
 }
@@ -92,6 +92,9 @@ if (grepl('intersect', casefold(opt$combine_method))) {
   remove_cells <- rowSums(remove_cells) > 0
 } else {
   stop('Invalid COMBINE_METHOD input. Valid options are "intersection" or "union".')
+}
+if (all(remove_cells)) {
+  stop('All cells satisfied criteria for removal.')
 }
 
 # Plot UMAP showing cells to be removed
@@ -121,7 +124,22 @@ saveRDS(DATA, file = paste0(opt$output_path,"/seurat_object.rds") )
 ### SYSTEM & SESSION INFO ###
 #############################
 #---------
-print_session_info()
+cat("\n\n\n\n")
+cat("\n##############################")
+cat("\n### SCRIPT RAN SUCESSFULLY ###")
+cat("\n##############################")
+cat("\n\n\n\n")
+
+cat("\n##########################")
+cat("\n### SYSTEM INFORMATION ###")
+cat("\n##########################")
+Sys.info()
+cat("\n\n\n\n")
+
+cat("\n###########################")
+cat("\n### SESSION INFORMATION ###")
+cat("\n###########################")
+sessionInfo()
 #---------
 
 
