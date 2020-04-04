@@ -4,15 +4,15 @@ From: continuumio/miniconda3
 
 %environment
     PATH=/opt/conda/bin:$PATH
-    PATH=/opt/conda/envs/Sauron.v1/bin:$PATH
+    PATH=/opt/conda/envs/trajectory-env/bin:$PATH
 
 %post
-    wget https://raw.githubusercontent.com/NBISweden/sauron/master/environment.yml
-    /opt/conda/bin/conda env create -n Sauron.v1 -f environment.yml
+    wget https://raw.githubusercontent.com/JonathanRob/test_repo/master/trajectory_environment.yml
+    /opt/conda/bin/conda env create -f trajectory_environment.yml
     /opt/conda/bin/conda clean -afy
     cat ~/.bashrc
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
-    echo "source activate Sauron.v1" >> ~/.bashrc
+    echo "source activate trajectory-env" >> ~/.bashrc
 
 %runscript
   exec "$@"
