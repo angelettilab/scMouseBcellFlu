@@ -20,8 +20,7 @@ ddir <- paste0(pdir,'data/')  # data subdirectory
 # directories and clustering types to iterate through
 cdir <- paste0(adir, c('02_cluster/','04_cluster/'))
 edir <- paste0(adir, c('03_diff_expr/','05_diff_expr/'))
-clust_type <- c('louvain_0.7','louvain_0.5')
-filtered_clusters <- c(0, 11, 12, 13, 15, 17)
+clust_type <- c('louvain_0.7','louvain_0.8')
 
 # iterate through each pass
 for (i in 1:length(cdir)){
@@ -58,22 +57,14 @@ for (i in 1:length(cdir)){
   
 
   # UMAP plot with clusters mapped as colors
-  p <- DimPlot(DATA, dims=1:2, reduction='umap', group.by=clust_type[i], pt.size=0.1)
+  p <- DimPlot(DATA, dims=1:2, reduction='umap', group.by=clust_type[i], pt.size=0.1, label=T)
   ggsave(p, filename=paste0('clustering_',clust_type[i],'_umap.png'), path=paste0(cdir[i],'clustering/'), dpi=300, units="mm",
          width=190, height=150, limitsize=F)
   
-  # UMAP plot showing filtered clusters
-  if (i == 1){
-    DATA@meta.data$filter_status <- factor(DATA@meta.data[[clust_type[i]]] %in% filtered_clusters, labels=c('Keep','Remove'))
-    p <- DimPlot(object=DATA, group.by='filter_status', cols=c('lightgray','firebrick'), pt.size=0.1, reduction='umap')
-    ggsave(p, filename='removed_clusters_umap.png', path=paste0(cdir[i],'cell_type_prediction/main_cell_types/'), dpi=300, units="mm",
-           width=190, height=150, limitsize=F)
-  }
-
   
   # determine top 3 DE genes per cluster
   DATA <- SetIdent(DATA, value=as.character(DATA@meta.data[, clust_type[i]]))
-  DATA_markers <- read.csv2(paste0(edir[i],'/Cluster_marker_genes.csv'))
+  DATA_markers <- read.csv2(paste0(edir[i],'Cluster_marker_genes.csv'))
   DATA_markers %>% group_by(cluster) %>% top_n(3, avg_logFC) -> top3
   # heatmap showing top DE genes per cluster
   png(filename=paste0(edir[i],'heatmap_genes_per_cluster_top3.png'), width=2000, height=1000, res=150)
@@ -98,8 +89,48 @@ if (!exists('DATA')) {
   DATA <- readRDS(paste0(cdir[length(cdir)],'seurat_object.rds'))
 }
 
-# import b-cell correlation results
+
+# B-Cell markers
+# ==============
+
 celltype_dir <- 'bcell_types'
+
+# load b-cell gene marker list
+cell_markers <- as.list(read.csv(paste0(ddir, 'gene_lists/', celltype_dir, '.csv')))
+cell_markers <- lapply(cell_markers, function(x) casefold( as.character(x[x!=""]) ) )
+
+# match markers to those in Seurat object (i.e., correct capitalization)
+cell_markers <- lapply(cell_markers, function(x) rownames(DATA)[casefold(rownames(DATA)) %in% casefold(x)])
+cell_markers[lapply(cell_markers, length) == 0] <- NULL  # remove empty list entries
+
+# subset DATA to speed up calculation times
+temp <- subset(DATA, features=unique(unlist(cell_markers)))
+
+# calculate the sum of counts for all marker genes associated with each cell type
+counts <- as.matrix(temp@assays$RNA@counts)
+marker_counts <- NULL
+for (i in 1:length(cell_markers)) {
+  if (length(cell_markers[[i]]) > 1) {
+    mcs <- colSums(counts[rownames(temp) %in% cell_markers[[i]], ])
+  } else {
+    mcs <- counts[rownames(temp) %in% cell_markers[[i]], ]
+  }
+  marker_counts <- cbind(marker_counts, mcs)
+}
+colnames(marker_counts) <- names(cell_markers)
+
+# add cell marker counts to Seurat object
+temp <- AddMetaData(temp, as.data.frame(marker_counts))
+
+# generate UMAP plots with mapped count values for each cell type
+col_scale <- c("grey85","navy")
+p <- FeaturePlot(object=temp, features=names(cell_markers), cols=col_scale, pt.size=0.05, reduction='umap',
+                 dims=1:2, order=T, ncol=3)
+ggsave(p, filename='UMAP_cell_type_counts.png', path=paste0(sdir, celltype_dir), dpi=300, units='mm', width=400, height=200, limitsize=F)
+rm(temp)
+
+
+# import b-cell correlation results
 if (!file.exists(paste0(sdir, celltype_dir, '/cell_pred_correlation_', celltype_dir, '.rds'))) {
   # csv import/export is extremely slow, so save as RDS to avoid this in the future
   cors <- read.csv2(paste0(sdir, celltype_dir, '/cell_pred_correlation_', celltype_dir, '.csv'), row.names=1)
@@ -120,8 +151,53 @@ ggsave(p, filename='UMAP_cell_type_correlation.png', path=paste0(sdir, celltype_
 rm(temp)
 
 
-# import b-cell subtype correlation results, with germinal center subtyping
+# B-Cell GC subtype markers
+# =========================
+
 celltype_dir <- 'bcell_types_germsub_zonesub'
+
+# subset DATA to only contain clusters associated with the germinal center (GC)
+gc_clusters <- c('louvain_0.8','3','4','5','6','7','9','14')
+temp <- subset(DATA, cells = rownames(DATA@meta.data)[ (DATA@meta.data[[gc_clusters[1]]] %in% gc_clusters[2:length(gc_clusters)]) ])
+
+# load gene marker list
+cell_markers <- as.list(read.csv(paste0(ddir, 'gene_lists/', celltype_dir, '.csv')))
+cell_markers <- cell_markers[startsWith(names(cell_markers), 'GC_')]
+cell_markers <- lapply(cell_markers, function(x) casefold( as.character(x[x!=""]) ) )
+
+# match markers to those in Seurat object (i.e., correct capitalization)
+cell_markers <- lapply(cell_markers, function(x) rownames(temp)[casefold(rownames(DATA)) %in% casefold(x)])
+cell_markers[lapply(cell_markers, length) == 0] <- NULL  # remove empty list entries
+
+# subset data to speed up calculation times
+temp <- subset(temp, features=unique(unlist(cell_markers)))
+
+# calculate the sum of counts for all marker genes associated with each cell type
+counts <- as.matrix(temp@assays$RNA@counts)
+marker_counts <- NULL
+for (i in 1:length(cell_markers)) {
+  if (length(cell_markers[[i]]) > 1) {
+    mcs <- colSums(counts[rownames(temp) %in% cell_markers[[i]], ])
+  } else {
+    mcs <- counts[rownames(temp) %in% cell_markers[[i]], ]
+  }
+  marker_counts <- cbind(marker_counts, mcs)
+}
+colnames(marker_counts) <- names(cell_markers)
+
+# add cell marker counts to Seurat object
+temp <- AddMetaData(temp, as.data.frame(marker_counts))
+
+# generate UMAP plots with mapped count values for each cell type
+col_scale <- c("grey85","navy")
+p <- FeaturePlot(object=temp, features=names(cell_markers), cols=col_scale, pt.size=0.05, reduction='umap',
+                 dims=1:2, order=T, ncol=2)
+ggsave(p, filename='UMAP_cell_type_counts.png', path=paste0(sdir, celltype_dir), dpi=300, units='mm', width=400, height=200, limitsize=F)
+rm(temp)
+
+
+# import b-cell subtype correlation results, with germinal center subtyping
+temp <- subset(DATA, cells = rownames(DATA@meta.data)[ (DATA@meta.data[[gc_clusters[1]]] %in% gc_clusters[2:length(gc_clusters)]) ])
 if (!file.exists(paste0(sdir, celltype_dir, '/cell_pred_correlation_', celltype_dir, '.rds'))) {
   # csv import/export is extremely slow, so save as RDS to avoid this in the future
   cors <- read.csv2(paste0(sdir, celltype_dir, '/cell_pred_correlation_', celltype_dir, '.csv'), row.names=1)
@@ -131,12 +207,6 @@ if (!file.exists(paste0(sdir, celltype_dir, '/cell_pred_correlation_', celltype_
 }
 celltypes <- rownames(cors)
 celltypes <- celltypes[startsWith(celltypes, 'GC_')]
-
-# subset DATA to only contain clusters associated with the germinal center (GC) and add correlation values
-gc_clusters <- c('louvain_0.5','1','2','4','5','10','11')
-# temp <- subset(DATA, cells = rownames(DATA@meta.data)[ (DATA@meta.data[[gc_clusters[1]]] %in% gc_clusters[2:length(gc_clusters)]) ]
-temp <- subset(DATA, cells = rownames(DATA@meta.data)[ (DATA@reductions$umap@cell.embeddings[,2] < 10) & 
-                                                         (DATA@reductions$umap@cell.embeddings[,2] > -4.6667*DATA@reductions$umap@cell.embeddings[,1] - 19)])
 temp <- AddMetaData(temp, as.data.frame(t(cors)))
 
 # generate UMAP plots with mapped correlation values for each cell type
