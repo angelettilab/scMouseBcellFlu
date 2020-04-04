@@ -124,18 +124,18 @@ cat('![](', edir, 'heatmap_genes_per_cluster_top3.png', ')', sep='')
 
 ### Cell type prediction
 ```{r}
-pdir <- paste0(cdir, 'cell_type_prediction/main_cell_types/')
+pred_dir <- paste0(cdir, 'cell_type_prediction/main_cell_types/')
 ```
 
 #### Predicted cell types (based on correlation)
 ```{r, results='asis'}
-cat('![](', pdir, 'cell_cluster_pred_correlation_umap.png', '){width=70%}', sep='')
+cat('![](', pred_dir, 'cell_cluster_pred_correlation_umap.png', '){width=70%}', sep='')
 ```
 
 #### Predicted cell type composition of each cluster
 ```{r, results='asis'}
 cat('![](', cdir, 'clustering/clustering_', clust, '_umap.png', '){width=40%}', sep='')
-cat('![](', pdir, 'cell_cluster_pred_correlation_barplot.png', '){width=60%}', sep='')
+cat('![](', pred_dir, 'cell_cluster_pred_correlation_barplot.png', '){width=60%}', sep='')
 ```
 
 <br/><br/>
@@ -147,10 +147,10 @@ kable(gene_table)
 ```
 
 
-### Filtered clusters
+### Filtered cells
 #### Predicted non-B-cells removed from the data
 ```{r, results='asis'}
-cat('![](', pdir, 'removed_clusters_umap.png', '){width=80%}', sep='')
+cat('![](', cdir, 'umap_plots/umap_removed_cells.png', '){width=80%}', sep='')
 ```
 
 
@@ -170,32 +170,32 @@ for (mf in metadata_fields){
 ```
 
 ### Metadata (continuous)
-#### UMAP colored by metadata values
+#### UMAP colored by RNA counts and percent mitochondrial reads
 ```{r, results='asis'}
 cat('![](', cdir, 'umap_plots/umap_metadata_nCount_RNA_perc_mito.png', ')', sep='')
 ```
 
-### Cell cycle scoring
+<br/><br/>
+
 #### UMAP colored by cell cycle scores
 ```{r, results='asis'}
 cat('![](', cdir, 'umap_plots/umap_metadata_cellcycle.png', ')', sep='')
 ```
 
-
-### Differential expression {.tabset}
+### Clustering
 ```{r}
-edir <- paste0(adir,'05_diff_expr/')
-```
-
-#### Clustering
-```{r}
-clust <- 'louvain_0.5'
+clust <- 'louvain_0.8'
 ```
 
 ```{r, results='asis'}
 cat('##### UMAP with mapped Louvain cluster groups (', clust, ')\n', sep='')
 cat('Note this is just one of the many available clustering methods/results. This grouping is shown because it was used for this differential expression analysis.\n\n')
 cat('![](', cdir, 'clustering/clustering_', clust, '_umap.png', '){width=80%}', sep='')
+```
+
+### Differential expression {.tabset}
+```{r}
+edir <- paste0(adir,'05_diff_expr/')
 ```
 
 #### Violin plots
