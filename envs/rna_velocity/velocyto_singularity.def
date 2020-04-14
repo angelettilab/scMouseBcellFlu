@@ -1,0 +1,28 @@
+Bootstrap: docker
+
+From: continuumio/miniconda3
+
+%environment
+    PATH=/opt/conda/bin:$PATH
+    PATH=/opt/conda/envs/trajectory-env/bin:$PATH
+
+%post
+    wget https://raw.githubusercontent.com/JonathanRob/test_repo/master/velocyto_environment.yml
+    /opt/conda/bin/conda env create -f velocyto_environment.yml
+    /opt/conda/bin/conda clean -afy
+
+    apt-get update
+    apt-get install build-essential -y
+    apt-get clean -y
+
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate velocyto-env
+    pip install pysam velocyto
+    conda deactivate
+
+    cat ~/.bashrc
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
+    echo "source activate velocyto-env" >> ~/.bashrc
+
+%runscript
+  exec "$@"
