@@ -78,7 +78,7 @@ DATA <- readRDS(opt$Seurat_object_path)
 ###################################
 ### SELECT CELLS FROM A CLUSTER ###
 ###################################
-cat("\n### SELECTING CELLS FROM A CLUSTER ###")
+cat("\n### SELECTING CELLS FROM A CLUSTER ###\n")
 
 clustering_use <- as.character(unlist(strsplit(opt$cluster_use,",")))[1]
 if (clustering_use == 'none') {
@@ -115,15 +115,21 @@ reduction_vis <- unlist(strsplit( opt$reduction_visualize , split = ","))
 #########################
 ### RUN DIFFUSION MAP ###
 #########################
-cat("\n### RUNNING DIFFUSION MAP ###")
+cat("\n### RUNNING DIFFUSION MAP ###\n")
 if ('dm' %in% reduction_use) {
   if ('dm' %in% names(DATA@reductions)) {
-    cat('\nWARNING: An existing diffusion map (DM) reduction was found in the Seurat object, and will be overwritten.\n')
+    # cat('\nWARNING: An existing diffusion map (DM) reduction was found in the Seurat object, and will be overwritten.\n')
+    cat('Existing diffusion map reduction found in Seurat object - skipping calculation.\n\n')
+  } else {
+    # dm <- DiffusionMap(DATA@reductions[["pca"]]@cell.embeddings[ , 1:8], k=4, n_eigs=5)
+    dm <- DiffusionMap(DATA@reductions[["mnn"]]@cell.embeddings[, 1:10], k=5, n_eigs=5)
+    rownames(dm@eigenvectors) <- colnames(DATA)
+    DATA@reductions[["dm"]] <- CreateDimReducObject(embeddings=dm@eigenvectors, key="DC_", assay="RNA")
+    
+    cat('Saving Seurat object with diffusion map reduction... ')
+    saveRDS(DATA, file=paste0(opt$output_path,"/seurat_object.rds") )
+    cat('Done.\n\n')
   }
-  # dm <- DiffusionMap(DATA@reductions[["pca"]]@cell.embeddings[ , 1:8], k=4, n_eigs=5)
-  dm <- DiffusionMap(DATA@reductions[["mnn"]]@cell.embeddings[, 1:8], k=4, n_eigs=5)
-  rownames(dm@eigenvectors) <- colnames(DATA)
-  DATA@reductions[["dm"]] <- CreateDimReducObject(embeddings=dm@eigenvectors, key="DC_", assay="RNA")
 }
 #---------
 
@@ -132,7 +138,7 @@ if ('dm' %in% reduction_use) {
 ##########################################
 ### RUN SLINGSHOT TRAJECTORY INFERENCE ###
 ##########################################
-cat("\n### RUNNING SLINGSHOT TRAJECTORY INFERENCE ###")
+cat("\n### RUNNING SLINGSHOT TRAJECTORY INFERENCE ###\n")
 
 # extract fields
 clustering <- DATA@meta.data[, clustering_use]
@@ -151,34 +157,44 @@ if (casefold(opt$end_cluster) != 'none') {
 }
 
 # define cell lineages with Singshot
-set.seed(1)
-lineages <- getLineages(data=dimred_use, clusterLabels=clustering, start.clus=start_clust, end.clus=end_clust)
-# lineages@reducedDim <- DATA@reductions$dm@cell.embeddings[,c(1,3)]
-lineages@reducedDim <- DATA@reductions$umap@cell.embeddings
-lineages
+if (file.exists(paste0(opt$output_path,'/lineages_object.rds'))) {
+  cat('Found existing lineages object - skipping lineages calculation.\n')
+  lineages <- readRDS(paste0(opt$output_path,'/lineages_object.rds'))
+} else {
+  set.seed(1)
+  cat('Defining cell lineages with Slingshot... ')
+  lineages <- getLineages(data=dimred_use, clusterLabels=clustering, start.clus=start_clust, end.clus=end_clust)
+  # lineages@reducedDim <- DATA@reductions$dm@cell.embeddings[,c(1,3)]
+  lineages@reducedDim <- DATA@reductions$umap@cell.embeddings
+  saveRDS(lineages, file=paste0(opt$output_path,'/lineages_object.rds'))
+  cat('Done.\n')
+}
 
 # plot the lineages
 pal <- gg_color_hue(nlevels(clustering))
-png(filename=paste0(opt$output_path,'/trajectory_lineages.png'), res=300, units='mm', width=220, height=120)
-par(mfrow = c(1, 2))
+png(filename=paste0(opt$output_path,'/trajectory_lineages.png'), res=300, units='mm', width=120, height=120)
 plot(dimred_vis[, 1:2], col=pal[clustering], cex=0.2, pch=16, las=1)
-for (i in levels(clustering)) {
-  text(mean(dimred_vis[clustering == i, 1]), mean(dimred_vis[clustering == i, 2]), labels=i, font=2)
-}
-plot(dimred_vis[, 1:2], col=pal[clustering], cex=0.2, pch=16, las=1)
-lines(lineages, lwd=1.5, col="black", cex=1)
-dev.off()
+lines(lineages, lwd=2, col="black", cex=1.7)
+invisible(lapply(levels(clustering), function(x) text(mean(dimred_vis[clustering == x, 1]), mean(dimred_vis[clustering == x, 2]), labels=x, font=1, cex=0.5, col='white')))
+invisible(dev.off())
 
 # define the principal curves for each lineage
-curves <- getCurves(lineages, thresh=0.001, stretch=0.01, allow.breaks=F)
-curves
+if (file.exists(paste0(opt$output_path,'/curves_object.rds'))) {
+  cat('Found existing curves object - skipping curves calculation.\n')
+  curves <- readRDS(paste0(opt$output_path,'/curves_object.rds'))
+} else {
+  cat('Defining the principal curves for each lineage... ')
+  curves <- getCurves(lineages, thresh=0.01, stretch=0.01, allow.breaks=T)
+  saveRDS(curves, file=paste0(opt$output_path,'/curves_object.rds'))
+  cat('Done.\n\n')
+}
+curves  # show the curve data
 
 # plot principal curves
 png(filename=paste0(opt$output_path,'/trajectory_curves.png'), res=300, units='mm', width=120, height=120)
-par(mfrow=c(1,1))
 plot(dimred_vis, col='grey75', cex=0.2, pch=16)
 lines(curves, lwd = 2, col = gg_color_hue(length(curves@curves)))
-dev.off()
+invisible(dev.off())
 
 
 ###########################################
@@ -188,100 +204,118 @@ dev.off()
 # Fit an additive model (GAM) to the trajectory curves
 # ====================================================
 
-# limit to highly variable genes to avoid excessive calculation times
-filt_counts <- counts[rownames(counts) %in% DATA@assays[[opt$assay]]@var.features[1:300], ]
+if (file.exists(paste0(opt$output_path,'/sce_object.rds'))) {
+  
+  # load existing SCE object
+  cat('Found existing SCE object - skipping GAM fitting.\n')
+  sce <- readRDS(paste0(opt$output_path,'/sce_object.rds'))
+  filt_counts <- sce@assays@data@listData$counts
+  
+} else {
+  
+  # limit to highly variable genes to avoid excessive calculation times
+  filt_counts <- counts[rownames(counts) %in% DATA@assays[[opt$assay]]@var.features[1:500], ]
+  
+  # find differentially expressed genes (this takes a while to run)
+  cat("\n### FITTING GAM ###\n")
+  sce <- fitGAM(counts=filt_counts, sds=curves, nknots=10)
+  saveRDS(sce, file=paste0(opt$output_path,'/sce_object.rds'))
+}
 
-# find differentially expressed genes (this takes a while to run)
-cat("\n### FITTING GAM ###\n")
-sce <- fitGAM(counts=filt_counts, sds=curves, nknots=10)
-saveRDS(sce, file=paste0(opt$output_path,'/sce_object.rds'))
+# plot curves
+png(filename=paste0(opt$output_path,'/trajectory_curves_tradeseq.png'), res=300, units='mm', width=120, height=120)
+plotGeneCount(curves, filt_counts, clusters=clustering, models=sce)
+invisible(dev.off())
+
+# define plotting function
+plot_differential_expression <- function(feature_id) {
+  cowplot::plot_grid(plotGeneCount(curves, filt_counts, gene=feature_id[1], clusters=clustering, models=sce) +
+                       ggplot2::theme(legend.position = "none"),
+                     plotSmoothers(sce, as.matrix(counts), gene=feature_id[1]))
+}
 
 
-# 
-# # plot curves
-# plotGeneCount(curves, filt_counts, clusters=clustering, models=sce)
-# 
-# # define plotting function
-# plot_differential_expression <- function(feature_id) {
-#   cowplot::plot_grid(plotGeneCount(curves, filt_counts, gene=feature_id[1], clusters=clustering, models=sce) +
-#                        ggplot2::theme(legend.position = "none"), 
-#                      plotSmoothers(sce, as.matrix(counts), gene=feature_id[1]))
-# }
-# 
-# 
-# # Identify genes associated with pseudotime
-# # =========================================
-# 
-# # calculate pseudotime association significance for each gene
-# rowData(sce)$tradeSeq$beta <- list(rowData(sce)$tradeSeq$beta)  # necessary to avoid weird bug
-# pseudotime_association <- associationTest(sce)
-# pseudotime_association$fdr <- p.adjust(pseudotime_association$pvalue, method="fdr")
-# pseudotime_association <- pseudotime_association[order(pseudotime_association$pvalue), ]
-# pseudotime_association$feature_id <- rownames(pseudotime_association)
-# 
-# # plot gene with most significant association to pseudotime
-# feature_id <- pseudotime_association %>% filter(pvalue < 0.05) %>% top_n(1, waldStat) %>% pull(feature_id)
-# plot_differential_expression(feature_id)
-# 
-# 
-# 
-# # Compare specific pseudotime values within a lineage
-# # ===================================================
-# 
-# pseudo_start_end <- startVsEndTest(sce, pseudotimeValues = c(0, 1), lineages=T)
-# feature_id <- rownames(pseudo_start_end)[which.max(pseudo_start_end$waldStat)]
-# plot_differential_expression(feature_id)
-# 
-# 
-# # find genes associated with early differences in lineages
-# earlyDERes <- earlyDETest(sce, knots = c(2, 3))
-# oEarly <- order(earlyDERes$waldStat, decreasing = TRUE)
-# head(rownames(earlyDERes)[oEarly])
-# 
-# plot_differential_expression(rownames(earlyDERes)[oEarly][1])
-# 
-# 
-# # cluster genes according to their expression pattern
-# library(clusterExperiment)
-# nPointsClus <- 20
-# clusPat <- clusterExpressionPatterns(sce, nPoints=nPointsClus, genes=rownames(filt_counts))
-# clusterLabels <- primaryCluster(clusPat$rsec)
-# 
-# # to fix missing rownames
-# rownames(clusPat$yhatScaled) <- rownames(filt_counts)
-# 
-# # plot clustered genes (show four clusters)
-# library(cowplot)
-# library(ggplot2)
-# 
-# cUniq <- unique(clusterLabels)
-# cUniq <- cUniq[!cUniq == -1] # remove unclustered genes
-# plots <- list()
-# for (xx in cUniq[1:4]) {
-#   cId <- which(clusterLabels == xx)
-#   p <- ggplot(data = data.frame(x = 1:nPointsClus,
-#                                 y = rep(range(clusPat$yhatScaled[cId, ]),
-#                                         nPointsClus / 2)),
-#               aes(x = x, y = y)) +
-#     geom_point(alpha = 0) +
-#     labs(title = paste0("Cluster ", xx),  x = "Pseudotime", y = "Normalized expression") +
-#     theme_classic()
-#   for (ii in 1:length(cId)) {
-#     geneId <- rownames(clusPat$yhatScaled)[cId[ii]]
-#     p <- p +
-#       geom_line(data = data.frame(x = rep(1:nPointsClus, 3),
-#                                   y = clusPat$yhatScaled[geneId, ],
-#                                   lineage = rep(0:2, each = nPointsClus)),
-#                 aes(col = as.character(lineage), group = lineage), lwd = 0.5)
-#   }
-#   p <- p + guides(color = FALSE) +
-#     scale_color_manual(values = c("orange", "darkseagreen3", "purple"),
-#                        breaks = c("0", "1", "2"))  
-#   plots[[as.character(xx)]] <- p
-# }
-# plots$ncol <- 2
-# do.call(plot_grid, plots)
-# 
-# 
+# Identify genes associated with pseudotime
+# =========================================
+
+# calculate pseudotime association significance for each gene
+rowData(sce)$tradeSeq$beta <- list(rowData(sce)$tradeSeq$beta)  # necessary to avoid weird bug
+pseudotime_association <- associationTest(sce)
+pseudotime_association$fdr <- p.adjust(pseudotime_association$pvalue, method="fdr")
+pseudotime_association <- pseudotime_association[order(pseudotime_association$pvalue), ]
+pseudotime_association$feature_id <- rownames(pseudotime_association)
+
+# plot gene with most significant association to pseudotime
+feature_id <- pseudotime_association %>% top_n(1, waldStat) %>% pull(feature_id)
+png(filename=paste0(opt$output_path,'/top_pseudotime_assoc_gene.png'), res=300, units='mm', width=220, height=120)
+plot_differential_expression(feature_id)
+invisible(dev.off())
+
+
+
+# Compare specific pseudotime values within a lineage
+# ===================================================
+
+pseudo_start_end <- startVsEndTest(sce, pseudotimeValues = c(0, 1), lineages=T)
+feature_id <- rownames(pseudo_start_end)[which.max(pseudo_start_end$waldStat)]
+png(filename=paste0(opt$output_path,'/top_start_end_assoc_gene.png'), res=300, units='mm', width=220, height=120)
+plot_differential_expression(feature_id)
+invisible(dev.off())
+
+
+# find genes associated with early differences in lineages
+earlyDERes <- earlyDETest(sce, knots = c(2, 3))
+oEarly <- order(earlyDERes$waldStat, decreasing = TRUE)
+head(rownames(earlyDERes)[oEarly])
+png(filename=paste0(opt$output_path,'/top_early_diff_assoc_gene.png'), res=300, units='mm', width=220, height=120)
+plot_differential_expression(rownames(earlyDERes)[oEarly][1])
+invisible(dev.off())
+
+
+# cluster genes according to their expression pattern
+library(clusterExperiment)
+nPointsClus <- 20
+clusPat <- clusterExpressionPatterns(sce, nPoints=nPointsClus, genes=rownames(filt_counts))
+clusterLabels <- primaryCluster(clusPat$rsec)
+
+# to fix missing rownames
+rownames(clusPat$yhatScaled) <- rownames(filt_counts)
+
+# plot clustered genes (show four clusters)
+library(cowplot)
+library(ggplot2)
+
+nLin <- length(curves@lineages)
+cUniq <- unique(clusterLabels)
+cUniq <- cUniq[!cUniq == -1] # remove unclustered genes
+plots <- list()
+for (xx in cUniq[1:4]) {
+  cId <- which(clusterLabels == xx)
+  p <- ggplot(data = data.frame(x = 1:nPointsClus,
+                                y = rep(range(clusPat$yhatScaled[cId, ]),
+                                        nPointsClus / 2)),
+              aes(x = x, y = y)) +
+    geom_point(alpha = 0) +
+    labs(title = paste0("Cluster ", xx),  x = "Pseudotime", y = "Normalized expression") +
+    theme_classic()
+  for (ii in 1:length(cId)) {
+    geneId <- rownames(clusPat$yhatScaled)[cId[ii]]
+    p <- p +
+      geom_line(data = data.frame(x = rep(1:nPointsClus, nLin),
+                                  y = clusPat$yhatScaled[geneId, ],
+                                  lineage = rep(0:(nLin-1), each = nPointsClus)),
+                aes(col = as.character(lineage), group = lineage), lwd = 0.5)
+  }
+  p <- p + guides(color = FALSE) +
+    scale_color_manual(values = gg_color_hue(nLin),
+                       breaks = as.character(0:(nLin-1)))
+  plots[[as.character(xx)]] <- p
+}
+plots$ncol <- 2
+png(filename=paste0(opt$output_path,'/clustered_trajectory_genes.png'), res=300, units='mm', width=240, height=240)
+do.call(plot_grid, plots)
+invisible(dev.off())
+
+
 
 
