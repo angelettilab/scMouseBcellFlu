@@ -1,21 +1,23 @@
 name: trajectory-env
 channels:
- - conda-forge
  - bioconda
+ - conda-forge
  - defaults
- - anaconda
- - rdonnelly
 dependencies:
  - rstudio=1.1.456
- - bioconductor-scater
- - bioconductor-scran
- - bioconductor-tradeseq
- - r-umap=0.2
- - umap-learn=0.3.7
- - wget
- - r-hdf5r=1.2.0
- - r-bookdown
- - r-seurat=3.0.1
- - r-uwot
+ - bioconductor-destiny=2.15
+ - bioconductor-slingshot=1.4
+ - bioconductor-tradeseq=1.0
+ - bioconductor-singlecellexperiment=1.8
  - libgfortran
+ - libopenblas=0.3.7
+ - r-bookdown
+ - r-hdf5r
+ - r-optparse
+ - r-seurat=3.0.2
+ - r-stringi=1.4.3=r36h29659fb_0
+ - r-umap
+ - r-uwot
+ - wget
+ 
  
