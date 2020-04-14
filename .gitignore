@@ -2,10 +2,12 @@
 .DS_Store
 
 # specific data directories
-/data/cellranger
+/data/cellranger*
 /data/immcantation
 /data/Jay
 /data/VDJ_OTUs
+/data/rna_fastq
+/data/rna_velocity/genome_annotation_files
 /TEST
 
 # log and result files
