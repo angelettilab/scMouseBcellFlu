@@ -218,4 +218,34 @@ rm(temp)
 
 
 
+############################
+### TRAJECTORY INFERENCE ###
+############################
+
+tdir <- paste0(adir, '06_trajectory/')  # trajectory analysis directory
+clustering_use <- 'louvain_0.8'  # cluster grouping to show on plots
+
+# load Seurat object
+DATA <- readRDS(paste0(tdir, 'seurat_object.rds'))
+
+# generate umap plot to show first
+umap_plot <- list(DimPlot(DATA, dims=1:2, reduction='umap', group.by=clustering_use, pt.size=0.1, label=T) +
+  theme(legend.position='none'))
+
+# show cells in diffusion map (DM) space
+plot_nums <- as.list(1:min(5, ncol(DATA@reductions$dm)-1))
+plot_list <- lapply(plot_nums, function(x) { 
+  DimPlot(DATA, dims=x:(x+1), reduction='dm', group.by=clustering_use, pt.size=0.1, ncol=3, label=T) +
+    ggplot2::theme(legend.position='none')})
+p <- cowplot::plot_grid(plotlist = c(umap_plot, plot_list), ncol=3)
+ggplot2::ggsave(p, filename='diffusion_map_components.png', path=tdir, dpi=300,
+                units='mm', width=120*3, height=100*2, limitsize=F)
+
+
+
+
+
+
+
+
 
