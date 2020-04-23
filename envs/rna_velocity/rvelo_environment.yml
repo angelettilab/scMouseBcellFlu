@@ -1,0 +1,16 @@
+name: rvelo-env
+channels:
+  - anaconda
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - r-base
+  - rstudio
+  - r-seurat
+  - r-optparse
+  - r-velocyto.r
+  - r-hdf5r
+  - r-matrix.utils-0.9.8
+  - libopenblas=0.3.7
+  
