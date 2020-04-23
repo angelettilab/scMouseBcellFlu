@@ -7,7 +7,7 @@
 /data/Jay
 /data/VDJ_OTUs
 /data/rna_fastq
-/data/rna_velocity/genome_annotation_files
+/data/rna_velocity
 /TEST
 
 # log and result files
