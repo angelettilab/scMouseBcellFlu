@@ -10,10 +10,11 @@ option_list = list(
   make_option(c("-m", "--metadata_use"),          type = "character",   metavar="character",   default='none',  help="Column names of the metadata table to plot in the trajectory map."),
   make_option(c("-d", "--reduction_use"),         type = "character",   metavar="character",   default='dm',    help="Dimensionality reduction method to base the trajectories on. It could be a pre-computed slot within your Seurat Object (in case: pca, umap, umap10, tsne) or it will compute additional others (ica, dm)"),
   make_option(c("-r", "--reduction_visualize"),   type = "character",   metavar="character",   default='umap',  help="Dimensionality reduction method to visualize trajectories. It could be a pre-computed slot within your Seurat Object (in case: pca, umap, umap10, tsne) or it will compute additional others (ica, dm)"),
+  make_option(c("-p", "--destiny_params"),        type = "character",   metavar="character",   default='default',  help="Optional adjustment of parameters used for calculating the diffusion map components with destiny. Should be provided as 'param=value' separated by commas, where available params are 'k' and 'n_eigs'. For example, the default settings are equivalent to 'k=30, n_eigs=20'."),
   make_option(c("-n", "--cluster_use"),           type = "character",   metavar="character",   default='none',  help="The cluster of cells to be used for analysis. Should be defined as the clustering name followed by the cluster names to be used, comma-separated. E.g.: 'louvain_0.2,1,2,3,5,6'. A clustering method MUST be specified, though the cluster names can be omitted to include all clusters."),
   make_option(c("-s", "--start_cluster"),         type = "character",   metavar="character",   default='none',  help="Cluster from which the trajectories will start."),
-  make_option(c("-x", "--end_cluster"),           type = "character",   metavar="character",   default='none',  help="Cluster at which the trajectories will end"),
-  make_option(c("-z", "--diff_testing"),          type = "character",   metavar="character",   default='none',  help="Whether to test for diffential expression across branches"),
+  make_option(c("-x", "--end_cluster"),           type = "character",   metavar="character",   default='none',  help="Cluster(s) at which the trajectories will end. By default, additional trajectories ending at other clusters may also be produced; include 'only' to exclude these additional trajectories. For example: '3, only' "),
+  make_option(c("-z", "--diff_testing"),          type = "character",   metavar="character",   default='true',  help="Whether to test for diffential expression within lineages"),
   make_option(c("-a", "--assay"),                 type = "character",   metavar="character",   default='RNA',   help="Assay to use for trajectory differential expression. Default is 'RNA'"),
   make_option(c("-o", "--output_path"),           type = "character",   metavar="character",   default='none',  help="Output DIRECTORY.")
 )
@@ -21,20 +22,18 @@ option_list = list(
 opt = parse_args(OptionParser(option_list=option_list))
 print(t(t(unlist(opt))))
 
-# opt <- list(
-#   Seurat_object_path  ="/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/TEST/analysis/02_cluster/seurat_object.rds",
-#   metadata_use        ="dataset,organ"                                                                                        ,
-#   reduction_use       ="dm"                                                                                               ,
-#   reduction_visualize ="umap"                                                                                                 ,
-#   method_use          ="slingshot"                                                                                              ,
-#   no_traj_components  ="3"                                                                                                    ,
-#   no_of_paths         ="none"                                                                                                 ,
-#   cluster_use         ="louvain_0.45"                                                                                                  ,
-#   start_cluster       ="none"                                                                                                 ,
-#   diff_testing        ="true"                                                                                                 ,
-#   assay               ="RNA"                                                                                                  ,
-#   output_path         ="/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/TEST/analysis/X_trajectory"                ,
-#   help                ="FALSE")
+opt <- list(Seurat_object_path  ="/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/04_cluster/seurat_object.rds",
+            metadata_use        ="none"                                                                        ,
+            reduction_use       ="dm"                                                                          ,
+            reduction_visualize ="umap"                                                                        ,
+            destiny_params      ="k=30, n_eigs=20"                                                             ,
+            cluster_use         ="louvain_0.95,2,4,5,7,8,9,11,12,13,14,15"                                     ,
+            start_cluster       ="13"                                                                          ,
+            end_cluster         ="14"                                                                          ,
+            diff_testing        ="true"                                                                        ,
+            assay               ="RNA"                                                                         ,
+            output_path         ="/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/trajectory_01b",
+            help                ="FALSE")
 
 if(!dir.exists(opt$output_path)){dir.create(opt$output_path,recursive = T)}
 setwd(opt$output_path)
@@ -52,6 +51,8 @@ suppressMessages(suppressWarnings({
   library(destiny)
   library(dplyr)
   library(SingleCellExperiment)
+  library(ggplot2)
+  library(cowplot)
 }))
 
 # function for generating color hues (mimics default ggplot palette)
@@ -59,6 +60,8 @@ gg_color_hue <- function(n) {
   hues = seq(15, 375, length = n + 1)
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
+# more basic gray to blue color scale
+blue_pal <- c("grey85","navy")
 #---------
 
 if (opt$cluster_use == 'none') {
@@ -94,7 +97,7 @@ if (length(unlist(strsplit(opt$cluster_use,","))) >= 2 ){
     cells_use <- rownames(DATA@meta.data)
   } else {
     cells_use <- rownames(DATA@meta.data)[factor(DATA@meta.data[,clustering_use]) %in% clusters_to_select]   #Filter out cells with no assigned clusters
-    DATA <- SubsetData(DATA,assay = opt$assay,cells = cells_use)}
+    DATA <- subset(DATA, cells = cells_use)}
 } else {
   cat("\nAll clusters will be used ...\n")
   cells_use <- rownames(DATA@meta.data) }
@@ -117,17 +120,31 @@ reduction_vis <- unlist(strsplit( opt$reduction_visualize , split = ","))
 #########################
 cat("\n### RUNNING DIFFUSION MAP ###\n")
 if ('dm' %in% reduction_use) {
-  if ('dm' %in% names(DATA@reductions)) {
-    # cat('\nWARNING: An existing diffusion map (DM) reduction was found in the Seurat object, and will be overwritten.\n')
-    cat('Existing diffusion map reduction found in Seurat object - skipping calculation.\n\n')
-  } else {
-    # dm <- DiffusionMap(DATA@reductions[["pca"]]@cell.embeddings[ , 1:8], k=4, n_eigs=5)
-    dm <- DiffusionMap(DATA@reductions[["mnn"]]@cell.embeddings[, 1:10], k=5, n_eigs=5)
-    rownames(dm@eigenvectors) <- colnames(DATA)
-    DATA@reductions[["dm"]] <- CreateDimReducObject(embeddings=dm@eigenvectors, key="DC_", assay="RNA")
+  dm_filename <- paste0(opt$output_path,'/diffusion_map_coords.csv')
+  if (file.exists(dm_filename)) {
+    cat('Existing diffusion map reduction found (', dm_filename, ') - skipping calculation.\n\n', sep='')
+    dm_coords <- as.matrix(read.csv(dm_filename, row.names=1))
+    DATA@reductions[["dm"]] <- CreateDimReducObject(embeddings=dm_coords, key="DC_", assay=opt$assay)
     
-    cat('Saving Seurat object with diffusion map reduction... ')
-    saveRDS(DATA, file=paste0(opt$output_path,"/seurat_object.rds") )
+  } else {
+    
+    # get parameters for diffusion map calculation
+    dim_reduct_params <- list(k=30, n_eigs=20)  # set defaults
+    if (!(opt$destiny_params %in% c('default','defaults'))) {
+      new_params <- eval(parse(text=paste0("list(", opt$destiny_params, ")")))
+      if (!all(names(new_params) %in% names(dim_reduct_params))) {
+        stop(paste('Invalid dim_reduct_param parameter(s):', paste(names(new_params)[!(names(new_params) %in% names(dim_reduct_params))], collapse=', ')))
+      }
+      dim_reduct_params <- modifyList(dim_reduct_params, new_params)
+    }
+    
+    # dm <- DiffusionMap(DATA@reductions[["pca"]]@cell.embeddings[ , 1:8], k=4, n_eigs=5)
+    dm <- DiffusionMap(DATA@reductions[["mnn"]]@cell.embeddings, k=dim_reduct_params$k, n_eigs=dim_reduct_params$n_eigs, verbose=T)
+    rownames(dm@eigenvectors) <- colnames(DATA)
+    DATA@reductions[["dm"]] <- CreateDimReducObject(embeddings=dm@eigenvectors, key="DC_", assay=opt$assay)
+    
+    cat('Saving diffusion map reduction coordinates... ')
+    write.csv(DATA@reductions$dm@cell.embeddings, dm_filename)
     cat('Done.\n\n')
   }
 }
@@ -150,8 +167,13 @@ if (casefold(opt$start_cluster) != 'none') {
 } else {
   start_clust <- NULL
 }
+allow_more_lineages <- TRUE  # default
 if (casefold(opt$end_cluster) != 'none') {
   end_clust <- trimws(unlist(strsplit(opt$end_cluster, ',')))
+  if ('only' %in% end_clust) {
+    allow_more_lineages <- FALSE  # restrict to the requested end points
+    end_clust <- end_clust[!(end_clust %in% 'only')]
+  }
 } else {
   end_clust <- NULL
 }
@@ -165,6 +187,13 @@ if (file.exists(paste0(opt$output_path,'/lineages_object.rds'))) {
   cat('Defining cell lineages with Slingshot... ')
   lineages <- getLineages(data=dimred_use, clusterLabels=clustering, start.clus=start_clust, end.clus=end_clust)
   # lineages@reducedDim <- DATA@reductions$dm@cell.embeddings[,c(1,3)]
+  
+  # remove additional lineages if requested
+  if (!allow_more_lineages) {
+    keep_lineages <- lineages@slingParams$end.given
+    lineages@lineages[!keep_lineages] <- NULL
+  }
+  
   lineages@reducedDim <- DATA@reductions$umap@cell.embeddings
   saveRDS(lineages, file=paste0(opt$output_path,'/lineages_object.rds'))
   cat('Done.\n')
@@ -175,7 +204,7 @@ pal <- gg_color_hue(nlevels(clustering))
 png(filename=paste0(opt$output_path,'/trajectory_lineages.png'), res=300, units='mm', width=120, height=120)
 plot(dimred_vis[, 1:2], col=pal[clustering], cex=0.2, pch=16, las=1)
 lines(lineages, lwd=2, col="black", cex=1.7)
-invisible(lapply(levels(clustering), function(x) text(mean(dimred_vis[clustering == x, 1]), mean(dimred_vis[clustering == x, 2]), labels=x, font=1, cex=0.5, col='white')))
+invisible(lapply(levels(clustering), function(x) text(mean(dimred_vis[clustering == x, 1]), mean(dimred_vis[clustering == x, 2]), labels=x, font=1, cex=0.6, col='white')))
 invisible(dev.off())
 
 # define the principal curves for each lineage
@@ -184,22 +213,46 @@ if (file.exists(paste0(opt$output_path,'/curves_object.rds'))) {
   curves <- readRDS(paste0(opt$output_path,'/curves_object.rds'))
 } else {
   cat('Defining the principal curves for each lineage... ')
-  curves <- getCurves(lineages, thresh=0.01, stretch=0.01, allow.breaks=T)
+  curves <- getCurves(lineages, thresh=0.01, stretch=0.0001, allow.breaks=T, extend='n')
   saveRDS(curves, file=paste0(opt$output_path,'/curves_object.rds'))
   cat('Done.\n\n')
 }
 curves  # show the curve data
 
+
+# get curve points and endpoints (used for plotting)
+curve_points <- NULL
+curve_ends <- NULL
+for (i in 1:length(curves@curves)) {
+  temp <- as.data.frame(curves@curves[[i]]$s[curves@curves[[i]]$ord, ])
+  curve_ends <- rbind(curve_ends, tail(temp, n=1))
+  temp$curve_num <- i
+  curve_points <- rbind(curve_points, temp)
+}
+colnames(curve_points)[1:2] <- c('x','y')
+colnames(curve_ends) <- c('x','y')
+rownames(curve_ends) <- 1:nrow(curve_ends)
+
+# set up curve color palette
+gray_pal <- gray.colors(length(curves@curves), start=0, end=0.4)
+
 # plot principal curves
 png(filename=paste0(opt$output_path,'/trajectory_curves.png'), res=300, units='mm', width=120, height=120)
-plot(dimred_vis, col='grey75', cex=0.2, pch=16)
-lines(curves, lwd = 2, col = gg_color_hue(length(curves@curves)))
+plot(rbind(dimred_vis, as.matrix(curve_ends)), col=pal[clustering], cex=0.2, pch=16)
+lines(curves, lwd=2, col=gray_pal)
+points(curve_ends, pch=16, cex=1.7)
+text(curve_ends, labels=rownames(curve_ends), cex=0.6, col='white')
 invisible(dev.off())
 
 
 ###########################################
 ### FIND DIFFERENTIALLY EXPRESSED GENES ###
 ###########################################
+
+if (!(casefold(opt$diff_testing) %in% c('true','yes'))) {
+  cat('\nSkipping lineage differential expression analysis as requested!\n\n')
+  return()
+}
 
 # Fit an additive model (GAM) to the trajectory curves
 # ====================================================
@@ -212,7 +265,6 @@ if (file.exists(paste0(opt$output_path,'/sce_object.rds'))) {
   filt_counts <- sce@assays@data@listData$counts
   
 } else {
-  
   # limit to highly variable genes to avoid excessive calculation times
   filt_counts <- counts[rownames(counts) %in% DATA@assays[[opt$assay]]@var.features[1:500], ]
   
@@ -224,33 +276,93 @@ if (file.exists(paste0(opt$output_path,'/sce_object.rds'))) {
 
 # plot curves
 png(filename=paste0(opt$output_path,'/trajectory_curves_tradeseq.png'), res=300, units='mm', width=120, height=120)
-plotGeneCount(curves, filt_counts, clusters=clustering, models=sce)
+plotGeneCount(curves, clusters=clustering, models=sce) +
+  theme(legend.position='none')
 invisible(dev.off())
 
 # define plotting function
-plot_differential_expression <- function(feature_id) {
-  cowplot::plot_grid(plotGeneCount(curves, filt_counts, gene=feature_id[1], clusters=clustering, models=sce) +
-                       ggplot2::theme(legend.position = "none"),
-                     plotSmoothers(sce, as.matrix(counts), gene=feature_id[1]))
+plot_feat_curves <- function(feature_id, curve_id=1:length(curves@curves)) {
+  # feature_id - name(s) of feature(s) (genes) whose expression should be plotted
+  # curve_id - index of curve(s) to show (default = show all curves)
+  
+  # select curves
+  sel_curves <- curves
+  sel_curves@curves <- sel_curves@curves[curve_id]
+  sel_curve_ends <- curve_ends[curve_id, ]
+  
+  # plot cells with mapped gene expression
+  color_pal <- c("grey90","grey80","royalblue","navy","navy")
+  n_plot_col = ceiling(sqrt(length(feature_id)))
+  n_plot_row = ceiling(length(feature_id)/n_plot_col)
+  par(mgp=c(0.5, 0, 0), mfrow=c(n_plot_row, n_plot_col), mar=c(2,2,2,2))
+  
+  for (i in 1:length(feature_id)) {
+    feat <- filt_counts[feature_id[i], ]
+    feat <- feat / ( sort(feat, T, na.last=T)[ min(10, sum(feat!=0, na.rm=T)) ] )
+    feat[feat > 1] <- 1
+    o <- order(feat, na.last=T)
+    feat_col <- c( color_pal[1],colorRampPalette(color_pal[-1])(10))[round(feat*9)+1][o]
+    
+    plot(rbind(dimred_vis[o, ], as.matrix(sel_curve_ends)), col=feat_col, cex=0.2, pch=16, yaxt='n', xaxt='n')
+    title(feature_id[i], adj=0, line=0.5, cex=0.8)
+    lines(sel_curves, lwd=1.5, col='black')
+    points(sel_curve_ends, pch=16, cex=1.7)
+    text(sel_curve_ends, labels=rownames(sel_curve_ends), cex=0.6, col='white')
+  }
 }
 
 
 # Identify genes associated with pseudotime
 # =========================================
 
-# calculate pseudotime association significance for each gene
+# calculate overall pseudotime association significance for each gene
 rowData(sce)$tradeSeq$beta <- list(rowData(sce)$tradeSeq$beta)  # necessary to avoid weird bug
 pseudotime_association <- associationTest(sce)
 pseudotime_association$fdr <- p.adjust(pseudotime_association$pvalue, method="fdr")
-pseudotime_association <- pseudotime_association[order(pseudotime_association$pvalue), ]
+pseudotime_association <- pseudotime_association[order(pseudotime_association$waldStat, decreasing=T), ]
 pseudotime_association$feature_id <- rownames(pseudotime_association)
 
-# plot gene with most significant association to pseudotime
+# plot gene with most significant association to pseudotime overall (all lineages)
 feature_id <- pseudotime_association %>% top_n(1, waldStat) %>% pull(feature_id)
-png(filename=paste0(opt$output_path,'/top_pseudotime_assoc_gene.png'), res=300, units='mm', width=220, height=120)
-plot_differential_expression(feature_id)
+
+png(filename=paste0(opt$output_path,'/top_pseudotime_assoc_gene_umap.png'), res=300, units='mm', width=120, height=120)
+plot_feat_curves(feature_id)
 invisible(dev.off())
 
+# due to a bug in plotSmoothers, cannot plot more than 9 lineages
+if (length(curves@curves) < 10) {
+  png(filename=paste0(opt$output_path,'/top_pseudotime_assoc_gene_traject_expr.png'), res=300, units='mm', width=120, height=120)
+  plotSmoothers(sce, as.matrix(filt_counts), gene=feature_id) + ggtitle(feature_id)
+  invisible(dev.off())
+}
+
+
+# Calculate pseudotime association for each lineage separately
+lineage_association <- associationTest(sce, lineages=T)
+lineage_association$fdr <- p.adjust(lineage_association$pvalue, method="fdr")
+lineage_association <- lineage_association[order(lineage_association$waldStat, decreasing=T), ]
+lineage_association$feature_id <- rownames(lineage_association)
+
+# export lineage association data to csv
+write.csv(lineage_association, file=paste0(opt$output_path,'/lineage_association.csv'))
+
+cat('Plotting lineage expression profiles... ')
+for (L in 1:length(curves@curves)) {
+  o <- order(lineage_association[, paste0('waldStat_', L)], decreasing=T)
+  top_feat <- rownames(lineage_association[o, ])[1:6]
+  
+  png(filename=paste0(opt$output_path,'/curve',L,'_assoc_gene_umap.png'), res=300, units='mm', width=200, height=120)
+  plot_feat_curves(top_feat, L)
+  invisible(dev.off())
+  
+  if (length(curves@curves) < 10) {
+    plot_list <- lapply(top_feat, function(x) {plotSmoothers(sce, as.matrix(filt_counts), gene=x, lwd=1, size=0.1) + ggtitle(x)})
+    p <- cowplot::plot_grid(plotlist=plot_list, ncol=3)
+    ggplot2::ggsave(p, filename=paste0('/curve',L,'_assoc_gene_traject_expr.png'), path=opt$output_path,
+                    dpi=300, units='mm', width=300, height=150, limitsize=F)
+  }
+}
+cat('Done.\n\n')
 
 
 # Compare specific pseudotime values within a lineage
@@ -258,18 +370,32 @@ invisible(dev.off())
 
 pseudo_start_end <- startVsEndTest(sce, pseudotimeValues = c(0, 1), lineages=T)
 feature_id <- rownames(pseudo_start_end)[which.max(pseudo_start_end$waldStat)]
-png(filename=paste0(opt$output_path,'/top_start_end_assoc_gene.png'), res=300, units='mm', width=220, height=120)
-plot_differential_expression(feature_id)
+
+png(filename=paste0(opt$output_path,'/top_start_end_assoc_gene_umap.png'), res=300, units='mm', width=120, height=120)
+plot_feat_curves(feature_id)
 invisible(dev.off())
 
+if (length(curves@curves) < 10) {
+  png(filename=paste0(opt$output_path,'/top_start_end_assoc_gene_traject_expr.png'), res=300, units='mm', width=120, height=120)
+  plotSmoothers(sce, as.matrix(filt_counts), gene=feature_id) + ggtitle(feature_id)
+  invisible(dev.off())
+}
 
 # find genes associated with early differences in lineages
-earlyDERes <- earlyDETest(sce, knots = c(2, 3))
+earlyDERes <- earlyDETest(sce, knots = c(3, 5))
 oEarly <- order(earlyDERes$waldStat, decreasing = TRUE)
-head(rownames(earlyDERes)[oEarly])
-png(filename=paste0(opt$output_path,'/top_early_diff_assoc_gene.png'), res=300, units='mm', width=220, height=120)
-plot_differential_expression(rownames(earlyDERes)[oEarly][1])
+# head(rownames(earlyDERes)[oEarly])
+feature_id <- rownames(earlyDERes)[oEarly][1]
+
+png(filename=paste0(opt$output_path,'/top_early_diff_assoc_gene_umap.png'), res=300, units='mm', width=120, height=120)
+plot_feat_curves(feature_id)
 invisible(dev.off())
+
+if (length(curves@curves) < 10) {
+  png(filename=paste0(opt$output_path,'/top_early_diff_assoc_gene_traject_expr.png'), res=300, units='mm', width=120, height=120)
+  plotSmoothers(sce, as.matrix(filt_counts), gene=feature_id) + ggtitle(feature_id)
+  invisible(dev.off())
+}
 
 
 # cluster genes according to their expression pattern
@@ -282,9 +408,6 @@ clusterLabels <- primaryCluster(clusPat$rsec)
 rownames(clusPat$yhatScaled) <- rownames(filt_counts)
 
 # plot clustered genes (show four clusters)
-library(cowplot)
-library(ggplot2)
-
 nLin <- length(curves@lineages)
 cUniq <- unique(clusterLabels)
 cUniq <- cUniq[!cUniq == -1] # remove unclustered genes
