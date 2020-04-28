@@ -21,8 +21,12 @@ knitr::opts_chunk$set(echo = F, results = 'hide', fig.width=10)
 pdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/'  # parent directiory
 adir <- paste0(pdir,'analysis/')  # analysis subdirectory
 ddir <- paste0(pdir,'data/')  # data subdirectory
-sdir <- paste0(adir,'04_cluster/cell_type_prediction/')  # cell type prediction subdirectory
-tdir <- paste0(adir,'06_trajectory/')  # trajectory subdirectory
+cdir <- paste0(adir,'04_cluster/')  # clustering subdirectory
+sdir <- paste0(cdir,'cell_type_prediction/')  # cell type prediction subdirectory
+tdirs <- dir(adir, '^trajectory_\\d')  # analysis subdirectories starting with "trajectory_"
+
+# specify clustering type used
+clustering_use <- 'louvain_0.95'
 ```
 
 ```{r}
@@ -66,68 +70,72 @@ kable(gene_table)
 ```
 
 
-## Diffusion map reduction
-#### UMAP and Diffusion map components (DCs), colored by cluster identity
+## Trajectories {.tabset}
+
+### Overview
+
+#### Summary of trajectory inference run parameters
 ```{r, results='asis'}
-cat('![](', tdir, 'diffusion_map_components.png', ')', sep='')
+traj_table <- read.csv(paste0(adir, 'trajectory_summary/trajectory_runs_summary.csv'), row.names=1, stringsAsFactors=F)
+traj_table[] <- lapply(traj_table, as.character)
+kable(traj_table)
 ```
 
-## Trajectory lineages and curves
-#### Parameters: Starting cluster = #1, Ending clusters = auto
-
-<br/>
-
-#### Trajectory lineages
+#### Clustering used for trajectory inference
 ```{r, results='asis'}
-cat('![](', tdir, 'trajectory_lineages.png', '){width=70%}', sep='')
-```
-
-#### Trajectory curves
-```{r, results='asis'}
-cat('![](', tdir, 'trajectory_curves.png', '){width=70%}', sep='')
+cat('![](', cdir, 'clustering/clustering_', clustering_use, '_umap.png', '){width=70%}', sep='')
 ```
 
 
-<!-- ## Top genes: all lineages combined {.tabset} -->
-
-<!-- ### Pseudotime -->
-<!-- #### Top gene associated with pseudotime -->
-<!-- ```{r, results='asis'} -->
-<!-- cat('![](', tdir, 'top_pseudotime_assoc_gene_umap.png', '){width=50%}', sep='') -->
-<!-- cat('![](', tdir, 'top_pseudotime_assoc_gene_traject_expr.png', '){width=50%}', sep='') -->
-<!-- ``` -->
-
-<!-- ### Start vs. End -->
-<!-- #### Top gene DE between trajectory start and end point -->
-<!-- ```{r, results='asis'} -->
-<!-- cat('![](', tdir, 'top_start_end_assoc_gene_umap.png', '){width=50%}', sep='') -->
-<!-- cat('![](', tdir, 'top_start_end_assoc_gene_traject_expr.png', '){width=50%}', sep='') -->
-<!-- ``` -->
-
-<!-- ### Early lineage differences -->
-<!-- #### Top gene associated with early differences between lineages -->
-<!-- ```{r, results='asis'} -->
-<!-- cat('![](', tdir, 'top_early_diff_assoc_gene_umap.png', '){width=50%}', sep='') -->
-<!-- cat('![](', tdir, 'top_early_diff_assoc_gene_traject_expr.png', '){width=50%}', sep='') -->
-<!-- ``` -->
-
-
-## Lineage-associated genes {.tabset}
 ```{r, results='asis'}
-umap_names <- dir(tdir, 'curve._assoc_gene_umap[.]png')
-pexp_names <- dir(tdir, 'curve._assoc_gene_traject_expr[.]png')
-for (L in 1:length(umap_names)) {
-  cat('### Lineage', L, '{.tabset} \n')
+for (t in tdirs) {
+  tdir <- paste0(adir, t, '/')
   
-  cat('#### Expression on UMAP \n')
-  cat('##### Top 6 genes associated with lineage', L, '\n')
-  cat('![](', tdir, umap_names[L], ') \n\n', sep='')
+  traj_num <- unlist(strsplit(t, '_'))[2]
+  cat('###', traj_num, '{.tabset} \n')
   
-  cat('#### Expression vs. Pseudotime \n')
-  cat('##### Top 6 genes associated with lineage', L, ' \n')
-  cat('![](', tdir, pexp_names[L], ') \n\n', sep='')
+  cat('#### Diffusion Components \n')
+  cat('##### UMAP and first few diffusion map components (DCs) \n')
+  cat('![](', tdir, 'diffusion_map_components.png', ') \n\n', sep='')
+  
+  
+  cat('#### Trajectory Pseudotime \n')
+  cat('##### UMAP colored by pseudotime along the trajectory \n')
+  fig_name <- dir(tdir, 'trajectory_curve\\d_pseudotime[.]png')
+  if (length(fig_name) == 0) {
+    # show figure with all curves
+    curve_nums <- unique(unlist(lapply(dir(tdir, '^curve\\d_'), function(x) unlist(strsplit(x, '_'))[1])))
+    fig_name <- 'trajectory_curves_pseudotime.png'
+    cat('![](', tdir, fig_name, ') \n\n', sep='')
+  } else {
+    # show figure with only one curve
+    curve_nums <- unlist(strsplit(fig_name, '_'))[2]
+    cat('![](', tdir, fig_name, '){width=50%} \n\n', sep='')
+  }
+  
+  for (i in seq(length(curve_nums))) {
+    
+    if (length(curve_nums) > 1) {
+      cat('#### Tr.', i, 'Genes {.tabset} \n')
+    } else {
+      cat('#### Trajectory Genes {.tabset} \n')
+    }
+    
+    umap_name <- paste0(curve_nums[i], '_assoc_gene_umap.png')
+    pexp_name <- paste0(curve_nums[i], '_assoc_gene_traject_expr.png')
+    
+    cat('##### Expression on UMAP \n')
+    cat('###### Top 6 genes associated with trajectory (', curve_nums[i], ') \n', sep='')
+    cat('![](', tdir, umap_name, ') \n\n', sep='')
+    
+    cat('##### Expression vs. Pseudotime \n')
+    cat('###### Top 6 genes associated with trajectory (', curve_nums[i], ') \n', sep='')
+    cat('![](', tdir, pexp_name, ') \n\n', sep='')
+  }
 }
 ```
+
+
 
 
 
