@@ -22,18 +22,18 @@ option_list = list(
 opt = parse_args(OptionParser(option_list=option_list))
 print(t(t(unlist(opt))))
 
-opt <- list(Seurat_object_path  ="/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/04_cluster/seurat_object.rds",
-            metadata_use        ="none"                                                                        ,
-            reduction_use       ="dm"                                                                          ,
-            reduction_visualize ="umap"                                                                        ,
-            destiny_params      ="k=30, n_eigs=20"                                                             ,
-            cluster_use         ="louvain_0.95,2,4,5,7,8,9,11,12,13,14,15"                                     ,
-            start_cluster       ="13"                                                                          ,
-            end_cluster         ="14"                                                                          ,
-            diff_testing        ="true"                                                                        ,
-            assay               ="RNA"                                                                         ,
-            output_path         ="/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/trajectory_01b",
-            help                ="FALSE")
+# opt <- list(Seurat_object_path  ="/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/04_cluster/seurat_object.rds",
+#             metadata_use        ="none"                                                                        ,
+#             reduction_use       ="dm"                                                                          ,
+#             reduction_visualize ="umap"                                                                        ,
+#             destiny_params      ="k=30, n_eigs=20"                                                             ,
+#             cluster_use         ="louvain_0.95,2,4,5,7,8,9,11,12,13,14,15"                                     ,
+#             start_cluster       ="13"                                                                          ,
+#             end_cluster         ="14"                                                                          ,
+#             diff_testing        ="true"                                                                        ,
+#             assay               ="RNA"                                                                         ,
+#             output_path         ="/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/trajectory_01b",
+#             help                ="FALSE")
 
 if(!dir.exists(opt$output_path)){dir.create(opt$output_path,recursive = T)}
 setwd(opt$output_path)
@@ -124,6 +124,7 @@ if ('dm' %in% reduction_use) {
   if (file.exists(dm_filename)) {
     cat('Existing diffusion map reduction found (', dm_filename, ') - skipping calculation.\n\n', sep='')
     dm_coords <- as.matrix(read.csv(dm_filename, row.names=1))
+    dm_coords <- dm_coords[match(colnames(DATA), rownames(dm_coords)), ]  # ensure same cell ordering
     DATA@reductions[["dm"]] <- CreateDimReducObject(embeddings=dm_coords, key="DC_", assay=opt$assay)
     
   } else {
@@ -171,6 +172,8 @@ allow_more_lineages <- TRUE  # default
 if (casefold(opt$end_cluster) != 'none') {
   end_clust <- trimws(unlist(strsplit(opt$end_cluster, ',')))
   if ('only' %in% end_clust) {
+    # WARNING: REMOVING LINEAGES IN THIS WAY DOES NOT SEEM TO WORK!
+    # It causes problems with fitGAMs later on
     allow_more_lineages <- FALSE  # restrict to the requested end points
     end_clust <- end_clust[!(end_clust %in% 'only')]
   }
@@ -194,7 +197,7 @@ if (file.exists(paste0(opt$output_path,'/lineages_object.rds'))) {
     lineages@lineages[!keep_lineages] <- NULL
   }
   
-  lineages@reducedDim <- DATA@reductions$umap@cell.embeddings
+  lineages@reducedDim <- dimred_vis
   saveRDS(lineages, file=paste0(opt$output_path,'/lineages_object.rds'))
   cat('Done.\n')
 }
@@ -243,6 +246,27 @@ lines(curves, lwd=2, col=gray_pal)
 points(curve_ends, pch=16, cex=1.7)
 text(curve_ends, labels=rownames(curve_ends), cex=0.6, col='white')
 invisible(dev.off())
+
+# plot principal curves, colored by pseudotime
+pseudo_time <- slingPseudotime(curves)
+curve_labels <- colnames(pseudo_time)
+n_plot_cols <- min(3, length(curve_labels))
+n_plot_rows <- ceiling(length(curve_labels)/n_plot_cols)
+pal <- viridis(100, end=0.95)
+png(filename=paste0(opt$output_path,'/trajectory_curves_pseudotime.png'), res=300, units='mm', width=120*n_plot_cols, height=120*n_plot_rows)
+par(mfrow=c(n_plot_rows, n_plot_cols), mgp=c(0.5, 0, 0), mar=c(2,2,2,2), cex=1.3)
+for (i in curve_labels) {
+  colors <- pal[cut(pseudo_time[,i], breaks=100)]
+  # use "reducedDims(curves)" in case its ordering differs from dimred_vis
+  plot(reducedDims(curves), xlim=range(dimred_vis[,1]), ylim=range(dimred_vis[,2]), col='grey85', pch=16, cex=0.3, yaxt='n', xaxt='n')
+  par(new=T)
+  plot(reducedDims(curves), xlim=range(dimred_vis[,1]), ylim=range(dimred_vis[,2]), col=colors, pch=16, cex=0.3, main=i, yaxt='n', xaxt='n')
+  tmp <- curves; tmp@curves <- tmp@curves[i]
+  lines(tmp, lwd=3, col='black', type='curves')
+  box(lwd=1.5)
+}
+invisible(dev.off())
+write.csv(pseudo_time, file=paste0(opt$output_path,'/trajectory_curves_pseudotime.csv'))
 
 
 ###########################################
@@ -324,7 +348,6 @@ pseudotime_association$feature_id <- rownames(pseudotime_association)
 
 # plot gene with most significant association to pseudotime overall (all lineages)
 feature_id <- pseudotime_association %>% top_n(1, waldStat) %>% pull(feature_id)
-
 png(filename=paste0(opt$output_path,'/top_pseudotime_assoc_gene_umap.png'), res=300, units='mm', width=120, height=120)
 plot_feat_curves(feature_id)
 invisible(dev.off())
@@ -398,46 +421,46 @@ if (length(curves@curves) < 10) {
 }
 
 
-# cluster genes according to their expression pattern
-library(clusterExperiment)
-nPointsClus <- 20
-clusPat <- clusterExpressionPatterns(sce, nPoints=nPointsClus, genes=rownames(filt_counts))
-clusterLabels <- primaryCluster(clusPat$rsec)
-
-# to fix missing rownames
-rownames(clusPat$yhatScaled) <- rownames(filt_counts)
-
-# plot clustered genes (show four clusters)
-nLin <- length(curves@lineages)
-cUniq <- unique(clusterLabels)
-cUniq <- cUniq[!cUniq == -1] # remove unclustered genes
-plots <- list()
-for (xx in cUniq[1:4]) {
-  cId <- which(clusterLabels == xx)
-  p <- ggplot(data = data.frame(x = 1:nPointsClus,
-                                y = rep(range(clusPat$yhatScaled[cId, ]),
-                                        nPointsClus / 2)),
-              aes(x = x, y = y)) +
-    geom_point(alpha = 0) +
-    labs(title = paste0("Cluster ", xx),  x = "Pseudotime", y = "Normalized expression") +
-    theme_classic()
-  for (ii in 1:length(cId)) {
-    geneId <- rownames(clusPat$yhatScaled)[cId[ii]]
-    p <- p +
-      geom_line(data = data.frame(x = rep(1:nPointsClus, nLin),
-                                  y = clusPat$yhatScaled[geneId, ],
-                                  lineage = rep(0:(nLin-1), each = nPointsClus)),
-                aes(col = as.character(lineage), group = lineage), lwd = 0.5)
-  }
-  p <- p + guides(color = FALSE) +
-    scale_color_manual(values = gg_color_hue(nLin),
-                       breaks = as.character(0:(nLin-1)))
-  plots[[as.character(xx)]] <- p
-}
-plots$ncol <- 2
-png(filename=paste0(opt$output_path,'/clustered_trajectory_genes.png'), res=300, units='mm', width=240, height=240)
-do.call(plot_grid, plots)
-invisible(dev.off())
+# # cluster genes according to their expression pattern
+# library(clusterExperiment)
+# nPointsClus <- 20
+# clusPat <- clusterExpressionPatterns(sce, nPoints=nPointsClus, genes=rownames(filt_counts))
+# clusterLabels <- primaryCluster(clusPat$rsec)
+# 
+# # to fix missing rownames
+# rownames(clusPat$yhatScaled) <- rownames(filt_counts)
+# 
+# # plot clustered genes (show four clusters)
+# nLin <- length(curves@lineages)
+# cUniq <- unique(clusterLabels)
+# cUniq <- cUniq[!cUniq == -1] # remove unclustered genes
+# plots <- list()
+# for (xx in cUniq[1:4]) {
+#   cId <- which(clusterLabels == xx)
+#   p <- ggplot(data = data.frame(x = 1:nPointsClus,
+#                                 y = rep(range(clusPat$yhatScaled[cId, ]),
+#                                         nPointsClus / 2)),
+#               aes(x = x, y = y)) +
+#     geom_point(alpha = 0) +
+#     labs(title = paste0("Cluster ", xx),  x = "Pseudotime", y = "Normalized expression") +
+#     theme_classic()
+#   for (ii in 1:length(cId)) {
+#     geneId <- rownames(clusPat$yhatScaled)[cId[ii]]
+#     p <- p +
+#       geom_line(data = data.frame(x = rep(1:nPointsClus, nLin),
+#                                   y = clusPat$yhatScaled[geneId, ],
+#                                   lineage = rep(0:(nLin-1), each = nPointsClus)),
+#                 aes(col = as.character(lineage), group = lineage), lwd = 0.5)
+#   }
+#   p <- p + guides(color = FALSE) +
+#     scale_color_manual(values = gg_color_hue(nLin),
+#                        breaks = as.character(0:(nLin-1)))
+#   plots[[as.character(xx)]] <- p
+# }
+# plots$ncol <- 2
+# png(filename=paste0(opt$output_path,'/clustered_trajectory_genes.png'), res=300, units='mm', width=240, height=240)
+# do.call(plot_grid, plots)
+# invisible(dev.off())
 
 
 
