@@ -98,8 +98,9 @@ cell.colors <- color.pal[cluster.label]
 names(cell.colors) <- names(cluster.label)
 
 # get cell-cell distances and embeddings
-nPCs <- 30  # TODO: make this an input parameter
-cell.dist <- as.dist(1-cor(t(DATA@reductions$pca@cell.embeddings[, 1:nPCs])))
+ndims <- 30  # TODO: make this an input parameter
+# cell.dist <- as.dist(1-cor(t(DATA@reductions$pca@cell.embeddings[, 1:ndims])))
+cell.dist <- as.dist(1-cor(t(DATA@reductions$mnn@cell.embeddings[, 1:ndims])))
 emb <- DATA@reductions$umap@cell.embeddings
 
 # filter genes based on the minimum average expresion magnitude (in at least one of the clusters),
@@ -112,10 +113,10 @@ length(intersect(rownames(emat),rownames(nmat)))
 # using gene-relative model with k=20 cell kNN pooling and using top/bottom 2% quantiles for gamma fit
 fit.quantile <- 0.02
 rvel.cd <- gene.relative.velocity.estimates(emat, nmat, deltaT=1, kCells=20, cell.dist=cell.dist, fit.quantile=fit.quantile)
-if (any(colSums(rvel.cd$current) == 0)) {
-  # cells with all zero counts for the subset of genes will result in error, so remove
+if (any(colSums(rvel.cd$current) == 0) | any(as.logical(duplicated(as.matrix(rvel.cd$current), MARGIN=2)))) {
+  # cells with all zero counts or identical count vectors will result in error, so remove
   # these cells and re-run the velocity estimates function
-  keep_cells <- !(colSums(rvel.cd$current) == 0)
+  keep_cells <- !(colSums(rvel.cd$current) == 0) & !as.logical(duplicated(as.matrix(rvel.cd$current), MARGIN=2))
   emb <- emb[keep_cells, ]
   emat <- emat[, keep_cells]
   nmat <- nmat[, keep_cells]
@@ -126,13 +127,19 @@ if (any(colSums(rvel.cd$current) == 0)) {
   rvel.cd <- gene.relative.velocity.estimates(emat, nmat, deltaT=1, kCells=20, cell.dist=cell.dist, fit.quantile=fit.quantile)
 }
 
-# visualize velocity on the t-SNE embedding, using velocity vector fields:
-velvis <- show.velocity.on.embedding.cor(emb, rvel.cd, n=300, scale='sqrt', cell.colors=ac(cell.colors,alpha=0.5),
+# visualize velocity on the embedding, using correlation-based transition matrix
+vel.vis <- show.velocity.on.embedding.cor(emb, rvel.cd, n=300, scale='sqrt', cell.colors=ac(cell.colors,alpha=0.5),
                                          cex=0.8, arrow.scale=10, show.grid.flow=TRUE, min.grid.cell.mass=0.5,
                                          grid.n=40, arrow.lwd=1, do.par=F, cell.border.alpha=0.1)
 
 # to replot with different parameters (faster, uses results from prev plot to speed up)
-show.velocity.on.embedding.cor(emb, rvel.cd, cc=velvis$cc, n=300, scale='sqrt', cell.colors=ac(cell.colors,alpha=0.5),
-                               cex=0.8, arrow.scale=15, show.grid.flow=TRUE, min.grid.cell.mass=0.5,
-                               grid.n=70, arrow.lwd=1, do.par=F, cell.border.alpha=0.1)
+show.velocity.on.embedding.cor(emb, rvel.cd, cc=vel.vis$cc, n=300, scale='sqrt', cell.colors=ac(cell.colors,alpha=0.5),
+                               cex=0.8, arrow.scale=10, show.grid.flow=TRUE, min.grid.cell.mass=0.5,
+                               grid.n=70, arrow.lwd=1.5, do.par=F, cell.border.alpha=0.1)
+
+
+# # visualize velocity on the embedding, using euclidean-based transition matrix
+# vel.vis <- show.velocity.on.embedding.eu(emb, rvel.cd, n=300, scale='sqrt', cell.colors=ac(cell.colors,alpha=0.5),
+#                                           cex=0.8, arrow.scale=10, show.grid.flow=TRUE, arrow.lwd=1, do.par=F)
+
 
