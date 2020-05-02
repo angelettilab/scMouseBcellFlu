@@ -4,8 +4,10 @@
 # main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
 main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
 
-# add immcantation scripts to path
+# add immcantation and ChangeO scripts to system path
 PATH="$PATH:/Users/jonrob/Documents/NBIS/repos/immcantation/scripts"
+PATH="$PATH:/Users/jonrob/Library/Python/3.7/bin"
+
 
 # Download reference databases
 fetch_igblastdb.sh -o $main/data/immcantation/igblast
@@ -61,32 +63,43 @@ done
 
 
 # RUN R-SCRIPT TO IDENTIFY THRESHOLD FOR GROUPING B-CELL CLONES
-# RESULTS EXPORTED AS heavy_lung0_2_parse-select-genotyped.tab
-# AND A FASTA FILE OF THE V-SEGMENT GERMLINE SEQUENCES: lung0_2_v_genotype.fasta
+# Results are exported as "IGHV-genotyped_M#.tab", where "M#" is "M1", "M2", etc. for each mouse,
+# and a fasta file of the V-segment germline sequences: "IGHV_genotype_M#.fasta"
 
 
-# Define clones
-DefineClones.py -d $main/data/VDJ_OTUs/lung0_2/lung0_2_functional_parse-select.tab \
---act set \
---model ham \
---sym min \
---norm len \
---dist 0
+# Specify distance threshold for trimming the hierarchical clustering into B cell clones
+# thresholds=
 
 
-# Create germline sequences
-# Option1: Using genotyped sequences from TIgGER
-CreateGermlines.py -d $main/data/VDJ_OTUs/lung0_2/lung0_2_heavy_parse-select-genotyped.tab \
--r $main/data/VDJ_OTUs/lung0_2/lung0_2_v_genotype.fasta \
-$main/data/immcantation/germlines/imgt/mouse/vdj/imgt_mouse_IGH[DJ].fasta \
--g dmask \
---vf V_CALL_GENOTYPED
+# Get list of mouse numbers to process
+mouse_nums=(`ls $main/analysis/immcantation/genotyping/IGHV-genotyped_M{?,??}.tab | awk -F '[_.]' '{print $(NF-1)}'`)
 
-# Option2: Using the clonal assignments from above
-CreateGermlines.py -d $main/data/VDJ_OTUs/lung0_2/lung0_2_functional_parse-select_clone-pass.tab \
- -r $main/data/immcantation/germlines/imgt/mouse/vdj/imgt_mouse_IGH[VDJ].fasta \
--g dmask \
---cloned
+for mouse in ${mouse_nums[@]}
+do
+    # Define clones (dist = distance threshold)
+    # Output file is named "IGHV-genotyped_M#_clone-pass.tab"
+    DefineClones.py -d $main'/analysis/immcantation/genotyping/IGHV-genotyped_'$mouse'.tab' \
+    --act set \
+    --model ham \
+    --norm len \
+    --dist 0.1 \
+    --outname 'IGHV-genotyped_'$mouse \
+    --log 'IGHV-genotyped_'$mouse'_DefineClones.log'
+
+
+    # Create germline sequences using genotyped sequences from TIgGER
+    # Output file is named "IGHV-genotyped_M#_germ-pass.tab"
+    CreateGermlines.py -d $main'/analysis/immcantation/genotyping/IGHV-genotyped_'$mouse'_clone-pass.tab' \
+    -g dmask \
+    --cloned \
+    -r $main'/analysis/immcantation/genotyping/IGHV_genotype_'$mouse'.fasta' \
+    $main/data/immcantation/germlines/imgt/mouse/vdj/imgt_mouse_IGHD.fasta \
+    $main/data/immcantation/germlines/imgt/mouse/vdj/imgt_mouse_IGHJ.fasta \
+    --vf V_CALL_GENOTYPED \
+    --outname 'IGHV-genotyped_'$mouse \
+    --log 'IGHV-genotyped_'$mouse'_CreateGermlines.log'
+done
+
 
 
 
