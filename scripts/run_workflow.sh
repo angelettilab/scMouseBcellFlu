@@ -146,26 +146,40 @@ Rscript $script_path/cell_type_prediction.R \
 --output_path $main/'analysis/02_cluster/cell_type_prediction' \
 2>&1 | tee $main/'log/06_cell_type_prediction_log.txt'
 
+
+
+#######################################
+## REMOVE NON-B-CELLS FROM THE DATA ###
+#######################################
 # Cells that are NOT predicted as B-cells will be removed from the data, and the pipeline
 # re-run starting from the DATA INTEGRATION step.
+# The following code will remove cells that were in the specified clusters OR cells that
+# were not predicted by the correlation analysis to be B-cells.
+Rscript $main/scripts/remove_cells.R \
+--Seurat_object_path $main/'analysis/02_cluster/seurat_object.rds' \
+--remove 'louvain_0.7,0,11,12,13,15,16,17' \
+--keep 'cell_pred_correlation_main_cell_types,B_cell' \
+--combine_method 'union' \
+--output_path $main/'analysis/04_cluster2' \
+2>&1 | tee $main/'log/07_cell_type_prediction_log.txt'
+
 
 
 ##############################################################
 ### RUN DATA INTEGRATION, NORMALIZE AND GET VARIABLE GENES ###
 ##############################################################
 
-# Re-integrate and normalize data with suspected non-B-cell clusters 3, 8, and 12 removed
-# (specified using the 'cluster_use' input)
+# Re-integrate and normalize data now that non-B-cells have been removed.
 Rscript $script_path/02_integrate.R \
---Seurat_object_path $main/'analysis/02_cluster/seurat_object.rds' \
+--Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
 --columns_metadata $var_to_plot \
 --regress $var_to_regress \
 --var_genes 'seurat' \
 --integration_method 'mnn,dataset' \
---cluster_use 'louvain_0.7,1,2,3,4,5,6,7,8,9,10,14,16,18' \
+--cluster_use 'NONE' \
 --assay 'RNA' \
 --output_path $main/'analysis/04_cluster' \
-2>&1 | tee $main/log/'07_integrate_log.txt'
+2>&1 | tee $main/log/'08_integrate_log.txt'
 
 
 ###################################################
@@ -179,28 +193,27 @@ Rscript $script_path/03_dr_and_cluster.R \
 --PCs_use 'var,1' \
 --var_genes 'seurat' \
 --dim_reduct_use 'umap' \
---dim_reduct_params 'umap, n.neighbors=30, min.dist=0.01, spread=3, n.epochs=500, learning.rate=0.5; umap10, n.neighbors=30, min.dist=0.01, n.epochs=500' \
+--dim_reduct_params 'umap, n.neighbors=30, min.dist=0.01, spread=3; umap10, n.neighbors=30' \
 --pre_dim_reduct 'mnn' \
 --cluster_use 'none' \
---cluster_method 'HC,louvain' \
+--cluster_method 'louvain' \
 --assay 'RNA' \
 --output_path $main/'analysis/04_cluster' \
-2>&1 | tee $main/log/'08_dr_and_cluster_log.txt'
+2>&1 | tee $main/log/'09_dr_and_cluster_log.txt'
 
-# analyze louvain_0.5 clustering
+# analyze louvain_0.8 clustering
 
 
 ########################################
 ### RUN CLUSTER CORRELATION ANALYSIS ###
 ########################################
-
 Rscript $script_path/05_cluster_correlation.R \
 --Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
---clustering_use 'louvain_0.5' \
+--clustering_use 'louvain_0.8' \
 --exclude_cluster 'NONE' \
 --merge_cluster '0.95,0.9,0.85,0.8,0.75,0.7' \
 --output_path $main/'analysis/04_cluster/cluster_correlations' \
-2>&1 | tee $main/'log/09_clust_corr.txt'
+2>&1 | tee $main/'log/10_clust_corr.txt'
 
 
 
@@ -209,12 +222,12 @@ Rscript $script_path/05_cluster_correlation.R \
 ###################################
 Rscript $script_path/04_diff_gene_expr.R \
 --Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
---clustering_use 'louvain_0.5' \
+--clustering_use 'louvain_0.8' \
 --metadata_use 'organ,infection' \
 --exclude_cluster 'NONE' \
 --assay 'RNA' \
 --output_path $main/'analysis/05_diff_expr' \
-2>&1 | tee $main/'log/10_diff_expr_log.txt'
+2>&1 | tee $main/'log/11_diff_expr_log.txt'
 
 
 
@@ -224,10 +237,10 @@ Rscript $script_path/04_diff_gene_expr.R \
 Rscript $script_path/cell_type_prediction.R \
 --Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
 --marker_lists $main/'data/gene_lists/main_cell_types.csv' \
---clustering_use 'louvain_0.5' \
+--clustering_use 'louvain_0.8' \
 --assay 'RNA' \
 --output_path $main/'analysis/04_cluster/cell_type_prediction' \
-2>&1 | tee $main/'log/11_cell_type_prediction_log.txt'
+2>&1 | tee $main/'log/12_cell_type_prediction_log.txt'
 
 
 
@@ -237,10 +250,10 @@ Rscript $script_path/cell_type_prediction.R \
 Rscript $script_path/cell_type_prediction.R \
 --Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
 --marker_lists $main/'data/gene_lists/bcell_types.csv,'$main/'data/gene_lists/bcell_types_germsub.csv,'$main/'data/gene_lists/bcell_types_germsub_zonesub.csv' \
---clustering_use 'louvain_0.5' \
+--clustering_use 'louvain_0.8' \
 --assay 'RNA' \
 --output_path $main/'analysis/04_cluster/cell_type_prediction' \
-2>&1 | tee $main/'log/12_cell_type_prediction_log.txt'
+2>&1 | tee $main/'log/13_cell_type_prediction_log.txt'
 
 
 
@@ -263,7 +276,7 @@ Rscript $script_path/VDJ_analysis.R \
 --same_scale 'true' \
 --assay 'RNA' \
 --output_path $main/'analysis/06_VDJ_analysis_paired' \
-2>&1 | tee $main/log/'13_VDJ_analysis_paired_log.txt'
+2>&1 | tee $main/log/'14_VDJ_analysis_paired_log.txt'
 
 # run again, but unpaired
 Rscript $script_path/VDJ_analysis.R \
@@ -276,7 +289,7 @@ Rscript $script_path/VDJ_analysis.R \
 --same_scale 'true' \
 --assay 'RNA' \
 --output_path $main/'analysis/06_VDJ_analysis_unpaired' \
-2>&1 | tee $main/log/'14_VDJ_analysis_unpaired_log.txt'
+2>&1 | tee $main/log/'15_VDJ_analysis_unpaired_log.txt'
 
 
 
