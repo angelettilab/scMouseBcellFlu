@@ -1,6 +1,10 @@
 
-# specify directory containing loom files
-loomdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/data/rna_velocity/loom_files'
+# specify relevant directories
+projdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
+loomdir <- paste0(projdir, '/data/rna_velocity/loom_files')
+velodir <- paste0(projdir, '/analysis/rna_velocity')
+if (!dir.exists(velodir)) { dir.create(velodir, recursive=T) }
+
 
 # load required libraries
 library(velocyto.R)
@@ -110,32 +114,45 @@ nmat <- filter.genes.by.cluster.expression(nmat, cluster.label, min.max.cluster.
 length(intersect(rownames(emat),rownames(nmat)))
 
 # estimate RNA velocity 
-# using gene-relative model with k=20 cell kNN pooling and using top/bottom 2% quantiles for gamma fit
-fit.quantile <- 0.02
-rvel.cd <- gene.relative.velocity.estimates(emat, nmat, deltaT=1, kCells=20, cell.dist=cell.dist, fit.quantile=fit.quantile)
-if (any(colSums(rvel.cd$current) == 0) | any(as.logical(duplicated(as.matrix(rvel.cd$current), MARGIN=2)))) {
-  # cells with all zero counts or identical count vectors will result in error, so remove
-  # these cells and re-run the velocity estimates function
-  keep_cells <- !(colSums(rvel.cd$current) == 0) & !as.logical(duplicated(as.matrix(rvel.cd$current), MARGIN=2))
-  emb <- emb[keep_cells, ]
-  emat <- emat[, keep_cells]
-  nmat <- nmat[, keep_cells]
-  cell.dist <- as.dist(as.matrix(cell.dist)[keep_cells, keep_cells])
-  cell.colors <- cell.colors[keep_cells]
-  cluster.label <- cluster.label[keep_cells]
-  
+if (file.exists(paste0(velodir, '/velocity_estimates.rds'))) {
+  rvel.cd <- readRDS(paste0(velodir, '/velocity_estimates.rds'))
+} else {
+  # using gene-relative model with k=20 cell kNN pooling and using top/bottom 2% quantiles for gamma fit
+  fit.quantile <- 0.02
   rvel.cd <- gene.relative.velocity.estimates(emat, nmat, deltaT=1, kCells=20, cell.dist=cell.dist, fit.quantile=fit.quantile)
+  if (any(colSums(rvel.cd$current) == 0) | any(as.logical(duplicated(as.matrix(rvel.cd$current), MARGIN=2)))) {
+    # cells with all zero counts or identical count vectors will result in error, so remove
+    # these cells and re-run the velocity estimates function
+    keep_cells <- !(colSums(rvel.cd$current) == 0) & !as.logical(duplicated(as.matrix(rvel.cd$current), MARGIN=2))
+    emb <- emb[keep_cells, ]
+    emat <- emat[, keep_cells]
+    nmat <- nmat[, keep_cells]
+    cell.dist <- as.dist(as.matrix(cell.dist)[keep_cells, keep_cells])
+    cell.colors <- cell.colors[keep_cells]
+    cluster.label <- cluster.label[keep_cells]
+    
+    rvel.cd <- gene.relative.velocity.estimates(emat, nmat, deltaT=1, kCells=20, cell.dist=cell.dist, fit.quantile=fit.quantile)
+  }
+  # export velocity estimates structure to file
+  saveRDS(rvel.cd, paste0(velodir, '/velocity_estimates.rds'))
 }
 
 # visualize velocity on the embedding, using correlation-based transition matrix
-vel.vis <- show.velocity.on.embedding.cor(emb, rvel.cd, n=300, scale='sqrt', cell.colors=ac(cell.colors,alpha=0.5),
-                                         cex=0.8, arrow.scale=10, show.grid.flow=TRUE, min.grid.cell.mass=0.5,
-                                         grid.n=40, arrow.lwd=1, do.par=F, cell.border.alpha=0.1)
+if (file.exists(paste0(velodir, '/velocity_correlations.rds'))) {
+  vel.vis <- readRDS(paste0(velodir, '/velocity_correlations.rds'))
+} else {
+  vel.vis <- show.velocity.on.embedding.cor(emb, rvel.cd, n=300, scale='sqrt', cell.colors=ac(cell.colors,alpha=0.5),
+                                            cex=0.8, arrow.scale=10, show.grid.flow=TRUE, min.grid.cell.mass=0.5,
+                                            grid.n=40, arrow.lwd=1, do.par=F, cell.border.alpha=0.1)
+  saveRDS(vel.vis, paste0(velodir, '/velocity_correlations.rds'))
+}
 
 # to replot with different parameters (faster, uses results from prev plot to speed up)
+png(filename=paste0(velodir, '/umap_velocity.png'), res=300, units='mm', width=150, height=150)
 show.velocity.on.embedding.cor(emb, rvel.cd, cc=vel.vis$cc, n=300, scale='sqrt', cell.colors=ac(cell.colors,alpha=0.5),
                                cex=0.8, arrow.scale=10, show.grid.flow=TRUE, min.grid.cell.mass=0.5,
-                               grid.n=70, arrow.lwd=1.5, do.par=F, cell.border.alpha=0.1)
+                               grid.n=70, arrow.lwd=1, do.par=F, cell.border.alpha=0.1)
+invisible(dev.off())
 
 
 # # visualize velocity on the embedding, using euclidean-based transition matrix
