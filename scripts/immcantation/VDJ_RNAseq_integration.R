@@ -5,6 +5,8 @@ library(viridisLite)
 library(ggplot2)
 library(dplyr)
 
+analysis_dir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/immcantation/mutation'
+
 
 ##########################
 ### LOAD SEURAT OBJECT ###
@@ -53,7 +55,11 @@ plotFeat <- function(SeurObj, featName, featMax=Inf, combineMethod='sum', colorP
   nPlots <- 1
   if (length(featName) > 1) {
     if (combineMethod == 'sum') {
-      featName <- paste(featName, collapse=' + ')
+      if (length(featName) > 2) {
+        featName <- 'Total mutations'
+      } else {
+        featName <- paste(featName, collapse=' + ')
+      }
       featData <- as.data.frame(rowSums(featData)) %>% setNames('Value')
     } else if (combineMethod == 'sep') {
       nPlots <- length(featName)
@@ -86,8 +92,13 @@ plotFeat <- function(SeurObj, featName, featMax=Inf, combineMethod='sum', colorP
 # col_scale <- c("grey85","navy")
 col_scale <- viridis(100, direction=-1)
 col_scale <- magma(100, direction=-1)
+
+featName <- colnames(DATA@meta.data)[grepl('MU_', colnames(DATA@meta.data))]
+
 # FeaturePlot(DATA, reduction='umap', features='MU_COUNT_CDR1_R', cols=col_scale, pt.size=0.05, order=T)
+png(paste0(analysis_dir, '/umap_VDJmut_all.png'), res=300, units='mm', width=120, height=100)
 plotFeat(DATA, featName=featName, featMax=20, combineMethod='sum', colorPalette=col_scale)
+invisible(dev.off())
 # plotFeat(DATA, featName=featName, combineMethod='sep', colorPalette=col_scale)
 
 
