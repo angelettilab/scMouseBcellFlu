@@ -6,11 +6,12 @@ if(!require("optparse")){install.packages("optparse", repos='http://cran.us.r-pr
 library(optparse)
 cat("\nRunning REMOVE CELLS with the following parameters ...\n")
 option_list = list(
-  make_option(c("-i", "--Seurat_object_path"),    type = "character",   metavar="character",   default='none',  help="Path to the Seurat object FILE."),
-  make_option(c("-e", "--remove"),                type = "character",   metavar="character",   default='none',  help="Metadata column name(s) and value(s) corresponding to cells that should be removed. Input as 'column1, valA, valB; column2, valA'. For example, 'HC_12, 4, 8; louvain_0.8, 3'"),
-  make_option(c("-k", "--keep"),                  type = "character",   metavar="character",   default='all',   help="Metadata column name(s) and value(s) corresponding to cells that should be kept. Can be used in combination with, or instead of, the --remove input."),
-  make_option(c("-c", "--combine_method"),        type = "character",   metavar="character",   default='union', help="Options are 'union' or 'intersection'. Only relevant if specifying multiple metadata column names, and/or using both the '--remove' and '--keep' inputs. If 'union', then cells will be removed if they satisfy ANY of the removal criteria specified by the 'remove' and/or !('keep') inputs. If 'intersection', cells are removed only if they satisfy ALL removal critera."),
-  make_option(c("-o", "--output_path"),           type = "character",   metavar="character",   default='none',  help="Output DIRECTORY.")
+  make_option(c("-i", "--Seurat_object_path"),  type = "character",   metavar="character",   default='none',  help="Path to the Seurat object FILE."),
+  make_option(c("-e", "--remove"),              type = "character",   metavar="character",   default='none',  help="Metadata column name(s) and value(s) corresponding to cells that should be removed. Input as 'column1, valA, valB; column2, valA'. For example, 'HC_12, 4, 8; louvain_0.8, 3'"),
+  make_option(c("-k", "--keep"),                type = "character",   metavar="character",   default='all',   help="Metadata column name(s) and value(s) corresponding to cells that should be kept. Can be used in combination with, or instead of, the --remove input."),
+  make_option(c("-c", "--combine_method"),      type = "character",   metavar="character",   default='union', help="Options are 'union' or 'intersection'. Only relevant if specifying multiple metadata column names, and/or using both the '--remove' and '--keep' inputs. If 'union', then cells will be removed if they satisfy ANY of the removal criteria specified by the 'remove' and/or !('keep') inputs. If 'intersection', cells are removed only if they satisfy ALL removal critera."),
+  make_option(c("-t", "--output_type"),         type = "character",   metavar="character",   default='object', help="Options are 'object' or 'barcodes'. If 'object', the Seurat object with the cells removed will be saved as an RDS file. If 'barcodes', only a list of cell barcodes satisfying the removal criteria are output to a file named 'remove_cell_barcodes.txt'."),
+  make_option(c("-o", "--output_path"),         type = "character",   metavar="character",   default='none',  help="Output DIRECTORY.")
 ) 
 opt = parse_args(OptionParser(option_list=option_list))
 print(t(t(unlist(opt))))
@@ -100,22 +101,23 @@ if (all(remove_cells)) {
 # Plot UMAP showing cells to be removed
 DATA@meta.data$remove_cells <- ifelse(remove_cells, 'Remove', 'Keep')
 p <- DimPlot(object=DATA, pt.size=0.1, reduction='umap', group.by='remove_cells', cols=c('grey85','firebrick'))
-source_dir <- sub('\\w+[.]rds$', '', opt$Seurat_object_path)
-if (!dir.exists(paste0(source_dir,'umap_plots'))) { dir.create(paste0(source_dir,'umap_plots')) }
-ggsave(p, filename='umap_removed_cells.png', path=paste0(source_dir,'umap_plots'), dpi=300, units="mm",
-       width=190, height=150, limitsize=F)
+ggsave(p, filename='umap_removed_cells.png', path=opt$output_path, dpi=300, units="mm", width=190, height=150, limitsize=F)
 DATA@meta.data$remove_cells <- NULL
 
-# remove cells
-DATA <- subset(DATA, cells=rownames(DATA@meta.data)[!remove_cells])
 
-
-
-###################################
-### SAVING RAW Seurat.v3 OBJECT ###
-###################################
-cat("\n### Saving the Seurat object ###\n")
-saveRDS(DATA, file = paste0(opt$output_path,"/seurat_object.rds") )
+########################################################
+### SAVING Seurat.v3 OBJECT OR LIST OF REMOVED CELLS ###
+########################################################
+if (casefold(opt$output_type) %in% c('object', 'seurat', 'rds')) {
+  cat("\n### Saving the Seurat object ###\n")
+  DATA <- subset(DATA, cells=rownames(DATA@meta.data)[!remove_cells])
+  saveRDS(DATA, file = paste0(opt$output_path,"/seurat_object.rds") )
+} else if (casefold(opt$output_type) %in% c('barcodes', 'list', 'txt')) {
+  cat("\n### Saving the list of removed cell barcodes ###\n")
+  write.table(rownames(DATA@meta.data)[remove_cells], file=paste0(opt$output_path, "/remove_cell_barcodes.txt"), row.names=F, col.names=F, quote=F)
+} else {
+  stop(paste0('"', opt$output_type, '" is not a valid option for "output_type"!'))
+}
 #---------
 
 
