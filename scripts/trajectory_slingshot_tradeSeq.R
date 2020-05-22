@@ -4,36 +4,23 @@
 ################################
 if(!require("optparse")){install.packages("optparse", repos='http://cran.us.r-project.org')}
 library(optparse)
-cat("\nRunning TRAJECTORY ANALYSIS with the following parameters ...\n")
+cat("\nRunning TRAJECTORY ANALYSIS using SLINGSHOT/TRADESEQ with the following parameters ...\n")
 option_list = list(
   make_option(c("-i", "--Seurat_object_path"),    type = "character",   metavar="character",   default='none',  help="Path to the Seurat object FILE."),
-  make_option(c("-m", "--metadata_use"),          type = "character",   metavar="character",   default='none',  help="Column names of the metadata table to plot in the trajectory map."),
-  make_option(c("-d", "--reduction_use"),         type = "character",   metavar="character",   default='dm',    help="Dimensionality reduction method to base the trajectories on. It could be a pre-computed slot within your Seurat Object (in case: pca, umap, umap10, tsne) or it will compute additional others (ica, dm)"),
-  make_option(c("-r", "--reduction_visualize"),   type = "character",   metavar="character",   default='umap',  help="Dimensionality reduction method to visualize trajectories. It could be a pre-computed slot within your Seurat Object (in case: pca, umap, umap10, tsne) or it will compute additional others (ica, dm)"),
-  make_option(c("-p", "--destiny_params"),        type = "character",   metavar="character",   default='default',  help="Optional adjustment of parameters used for calculating the diffusion map components with destiny. Should be provided as 'param=value' separated by commas, where available params are 'k' and 'n_eigs'. For example, the default settings are equivalent to 'k=30, n_eigs=20'."),
+  make_option(c("-k", "--pre_dim_reduct"),        type = "character",   metavar="character",   default='pca',   help="The embedding or reduced dimension coordinates upon which the diffusion map will be based; for example, 'pca' or 'mnn'. Can optionally include the number of components to use, separated by a comma; for example, 'pca,20' will use the first 20 principal components (if unspecified, all components will be used). This input is only used if running a diffusion map (i.e., dim_reduct_use == 'dm')."),
+  make_option(c("-d", "--dim_reduct_use"),        type = "character",   metavar="character",   default='dm',    help="Dimensionality reduction method to base the trajectories on. It could be a pre-computed slot within your Seurat Object, or it will be computed (e.g., 'dm'). Can optionally include the number of components to use, separated by a comma; for example, 'dm,20' will use the first 20 diffusion components (if unspecified, all components will be used)."),
+  make_option(c("-r", "--dim_reduct_vis"),        type = "character",   metavar="character",   default='umap',  help="Dimensionality reduction method upon which to visualize trajectories. It should be a pre-computed slot within your Seurat Object."),
+  make_option(c("-p", "--diffusion_params"),      type = "character",   metavar="character",   default='default',  help="Optional adjustment of parameters used for calculating the diffusion map components with destiny. Should be provided as 'param=value' separated by commas. For example, 'k=30, n_eigs=20, sigma='local', rotate=F'. See destiny's DiffusionMap function for available parameters."),
   make_option(c("-n", "--cluster_use"),           type = "character",   metavar="character",   default='none',  help="The cluster of cells to be used for analysis. Should be defined as the clustering name followed by the cluster names to be used, comma-separated. E.g.: 'louvain_0.2,1,2,3,5,6'. A clustering method MUST be specified, though the cluster names can be omitted to include all clusters."),
   make_option(c("-s", "--start_cluster"),         type = "character",   metavar="character",   default='none',  help="Cluster from which the trajectories will start."),
-  make_option(c("-x", "--end_cluster"),           type = "character",   metavar="character",   default='none',  help="Cluster(s) at which the trajectories will end. By default, additional trajectories ending at other clusters may also be produced; include 'only' to exclude these additional trajectories. For example: '3, only' "),
-  make_option(c("-z", "--diff_testing"),          type = "character",   metavar="character",   default='true',  help="Whether to test for diffential expression within lineages"),
-  make_option(c("-a", "--assay"),                 type = "character",   metavar="character",   default='RNA',   help="Assay to use for trajectory differential expression. Default is 'RNA'"),
+  make_option(c("-z", "--end_cluster"),           type = "character",   metavar="character",   default='none',  help="Cluster(s) at which the trajectories will end. By default, additional trajectories ending at other clusters may also be produced; include 'only' to exclude these additional trajectories. For example: '3, only' "),
+  make_option(c("-x", "--diff_testing"),          type = "character",   metavar="character",   default='true',  help="Whether to test for diffential expression within lineages"),
+  make_option(c("-a", "--assay"),                 type = "character",   metavar="character",   default='RNA',   help="Assay from which counts will used for trajectory differential expression. Default is 'RNA'"),
   make_option(c("-o", "--output_path"),           type = "character",   metavar="character",   default='none',  help="Output DIRECTORY.")
 )
 
 opt = parse_args(OptionParser(option_list=option_list))
 print(t(t(unlist(opt))))
-
-# opt <- list(Seurat_object_path  ="/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/04_cluster/seurat_object.rds",
-#             metadata_use        ="none"                                                                        ,
-#             reduction_use       ="dm"                                                                          ,
-#             reduction_visualize ="umap"                                                                        ,
-#             destiny_params      ="k=30, n_eigs=20"                                                             ,
-#             cluster_use         ="louvain_0.95,2,4,5,7,8,9,11,12,13,14,15"                                     ,
-#             start_cluster       ="13"                                                                          ,
-#             end_cluster         ="14"                                                                          ,
-#             diff_testing        ="true"                                                                        ,
-#             assay               ="RNA"                                                                         ,
-#             output_path         ="/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/trajectory_01b",
-#             help                ="FALSE")
 
 if(!dir.exists(opt$output_path)){dir.create(opt$output_path,recursive = T)}
 setwd(opt$output_path)
@@ -104,22 +91,33 @@ if (length(unlist(strsplit(opt$cluster_use,","))) >= 2 ){
 #---------
 
 
+######################################
+### PARSE DIM REDUCTION INPUT ARGS ###
+######################################
+temp <- casefold(trimws(unlist(strsplit(opt$dim_reduct_use, ','))))
+dim_reduct_method = temp[1]
+if ((length(temp) > 1) & !(temp[2] == 'all')) {
+  dim_reduct_comps = 1:temp[2]
+} else {
+  dim_reduct_comps = 'all'
+}
 
-#########################
-### DEFINE PARAMETERS ###
-#########################
-# NOTE: CURRENTLY CAN ONLY HANDLE ONE OPTION FOR EACH REDUCTION_USE AND VISUALIZE
-reduction_use <- unlist(strsplit( opt$reduction_use , split = ","))
-reduction_vis <- unlist(strsplit( opt$reduction_visualize , split = ","))
-#---------
-
+if ( dim_reduct_method == 'dm' ) {
+  temp <- casefold(trimws(unlist(strsplit(opt$pre_dim_reduct, ','))))
+  pre_dim_method = temp[1]
+  if ((length(temp) > 1) & !(temp[2] == 'all')) {
+    pre_dim_comps = 1:temp[2]
+  } else {
+    pre_dim_comps = 'all'
+  }
+}
 
 
 #########################
 ### RUN DIFFUSION MAP ###
 #########################
-cat("\n### RUNNING DIFFUSION MAP ###\n")
-if ('dm' %in% reduction_use) {
+if ( dim_reduct_method == 'dm' ) {
+  cat("\n### RUNNING DIFFUSION MAP ###\n")
   dm_filename <- paste0(opt$output_path,'/diffusion_map_coords.csv')
   if (file.exists(dm_filename)) {
     cat('Existing diffusion map reduction found (', dm_filename, ') - skipping calculation.\n\n', sep='')
@@ -129,18 +127,27 @@ if ('dm' %in% reduction_use) {
     
   } else {
     
-    # get parameters for diffusion map calculation
-    dim_reduct_params <- list(k=30, n_eigs=20)  # set defaults
-    if (!(opt$destiny_params %in% c('default','defaults'))) {
-      new_params <- eval(parse(text=paste0("list(", opt$destiny_params, ")")))
-      if (!all(names(new_params) %in% names(dim_reduct_params))) {
-        stop(paste('Invalid dim_reduct_param parameter(s):', paste(names(new_params)[!(names(new_params) %in% names(dim_reduct_params))], collapse=', ')))
-      }
-      dim_reduct_params <- modifyList(dim_reduct_params, new_params)
+    # extract reduced dimension embedding upon which diffusion maps will be based
+    pre_dim_reduct = DATA@reductions[[pre_dim_method]]@cell.embeddings
+    if (is.numeric(pre_dim_comps)) {
+      cat('Only using the first', max(pre_dim_comps), 'dimensions of the', pre_dim_method, 'embedding for the diffusion map calculation.\n')
+      pre_dim_reduct = pre_dim_reduct[, pre_dim_comps]
+    } else {
+      cat('Using ALL dimensions of the', pre_dim_method, 'embedding for the diffusion map calculation.\n')
     }
     
-    # dm <- DiffusionMap(DATA@reductions[["pca"]]@cell.embeddings[ , 1:8], k=4, n_eigs=5)
-    dm <- DiffusionMap(DATA@reductions[["mnn"]]@cell.embeddings, k=dim_reduct_params$k, n_eigs=dim_reduct_params$n_eigs, verbose=T)
+    # set default parameters and get user-defined parameters for diffusion map calculation
+    dmap_params <- list(sigma='local', k=30, n_eigs=20, density_norm=T, distance='euclidean', rotate=F, verbose=T)
+    if (!(opt$diffusion_params %in% c('default','defaults'))) {
+      new_params <- eval(parse(text=paste0("list(", opt$diffusion_params, ")")))
+      if (!all(names(new_params) %in% names(dmap_params))) {
+        stop(paste('Unrecognized diffusion_params:', paste(names(new_params)[!(names(new_params) %in% names(dmap_params))], collapse=', ')))
+      }
+      dmap_params <- modifyList(dmap_params, new_params)
+    }
+    
+    dm <- DiffusionMap(pre_dim_reduct, sigma=dmap_params$sigma, k=dmap_params$k, n_eigs=dmap_params$n_eigs, density_norm=dmap_params$density_norm,
+                       distance=dmap_params$distance, rotate=dmap_params$rotate, verbose=dmap_params$verbose)
     rownames(dm@eigenvectors) <- colnames(DATA)
     DATA@reductions[["dm"]] <- CreateDimReducObject(embeddings=dm@eigenvectors, key="DC_", assay=opt$assay)
     
@@ -160,23 +167,23 @@ cat("\n### RUNNING SLINGSHOT TRAJECTORY INFERENCE ###\n")
 
 # extract fields
 clustering <- DATA@meta.data[, clustering_use]
-dimred_use <- DATA@reductions[[reduction_use]]@cell.embeddings
-dimred_vis <- DATA@reductions[[reduction_vis]]@cell.embeddings
+dimred_use <- DATA@reductions[[dim_reduct_method]]@cell.embeddings
+dimred_vis <- DATA@reductions[[opt$dim_reduct_vis]]@cell.embeddings
 counts <- as.matrix( DATA@assays[[opt$assay]]@counts )
-if (casefold(opt$start_cluster) != 'none') {
+
+# only keep first N components of reduced dimension coordinates, if specified
+if (is.numeric(dim_reduct_comps)) {
+  dimred_use <- dimred_use[, dim_reduct_comps]
+}
+
+# get start and end clusters if specified
+if (!(casefold(opt$start_cluster) %in% c('none','auto'))) {
   start_clust <- trimws(unlist(strsplit(opt$start_cluster, ',')))
 } else {
   start_clust <- NULL
 }
-allow_more_lineages <- TRUE  # default
-if (casefold(opt$end_cluster) != 'none') {
+if (!(casefold(opt$end_cluster) %in% c('none','auto'))) {
   end_clust <- trimws(unlist(strsplit(opt$end_cluster, ',')))
-  if ('only' %in% end_clust) {
-    # WARNING: REMOVING LINEAGES IN THIS WAY DOES NOT SEEM TO WORK!
-    # It causes problems with fitGAMs later on
-    allow_more_lineages <- FALSE  # restrict to the requested end points
-    end_clust <- end_clust[!(end_clust %in% 'only')]
-  }
 } else {
   end_clust <- NULL
 }
@@ -189,13 +196,6 @@ if (file.exists(paste0(opt$output_path,'/lineages_object.rds'))) {
   set.seed(1)
   cat('Defining cell lineages with Slingshot... ')
   lineages <- getLineages(data=dimred_use, clusterLabels=clustering, start.clus=start_clust, end.clus=end_clust)
-  # lineages@reducedDim <- DATA@reductions$dm@cell.embeddings[,c(1,3)]
-  
-  # remove additional lineages if requested
-  if (!allow_more_lineages) {
-    keep_lineages <- lineages@slingParams$end.given
-    lineages@lineages[!keep_lineages] <- NULL
-  }
   
   lineages@reducedDim <- dimred_vis
   saveRDS(lineages, file=paste0(opt$output_path,'/lineages_object.rds'))
@@ -205,7 +205,7 @@ if (file.exists(paste0(opt$output_path,'/lineages_object.rds'))) {
 # plot the lineages
 pal <- gg_color_hue(nlevels(clustering))
 png(filename=paste0(opt$output_path,'/trajectory_lineages.png'), res=300, units='mm', width=120, height=120)
-plot(dimred_vis[, 1:2], col=pal[clustering], cex=0.2, pch=16, las=1)
+plot(dimred_vis[, 1:2], col=pal[clustering], cex=0.3, pch=16, las=1)
 lines(lineages, lwd=2, col="black", cex=1.7)
 invisible(lapply(levels(clustering), function(x) text(mean(dimred_vis[clustering == x, 1]), mean(dimred_vis[clustering == x, 2]), labels=x, font=1, cex=0.6, col='white')))
 invisible(dev.off())
@@ -216,7 +216,7 @@ if (file.exists(paste0(opt$output_path,'/curves_object.rds'))) {
   curves <- readRDS(paste0(opt$output_path,'/curves_object.rds'))
 } else {
   cat('Defining the principal curves for each lineage... ')
-  curves <- getCurves(lineages, thresh=0.01, stretch=0.0001, allow.breaks=T, extend='n')
+  curves <- getCurves(lineages, thresh=0.01, stretch=0, allow.breaks=T, extend='n')
   saveRDS(curves, file=paste0(opt$output_path,'/curves_object.rds'))
   cat('Done.\n\n')
 }
@@ -241,7 +241,7 @@ gray_pal <- gray.colors(length(curves@curves), start=0, end=0.4)
 
 # plot principal curves
 png(filename=paste0(opt$output_path,'/trajectory_curves.png'), res=300, units='mm', width=120, height=120)
-plot(rbind(dimred_vis, as.matrix(curve_ends)), col=pal[clustering], cex=0.2, pch=16)
+plot(rbind(dimred_vis, as.matrix(curve_ends)), col=pal[clustering], cex=0.3, pch=16)
 lines(curves, lwd=2, col=gray_pal)
 points(curve_ends, pch=16, cex=1.7)
 text(curve_ends, labels=rownames(curve_ends), cex=0.6, col='white')
