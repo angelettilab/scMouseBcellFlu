@@ -18,9 +18,9 @@ ddir <- paste0(pdir,'data/')  # data subdirectory
 ###############################################
 
 # directories and clustering types to iterate through
-cdir <- paste0(adir, c('02_cluster/','04_cluster/'))
-edir <- paste0(adir, c('03_diff_expr/','05_diff_expr/'))
-clust_type <- c('louvain_0.7','louvain_0.8')
+cdir <- paste0(adir, c('02_cluster_scale/','06_cluster_scale/'))
+edir <- paste0(adir, c('03_diff_expr_scale/','07_diff_expr_scale/'))
+clust_type <- c('HC_16','louvain_0.9')
 
 # iterate through each pass
 for (i in 1:length(cdir)){
@@ -82,7 +82,7 @@ for (i in 1:length(cdir)){
 ##################################
 
 # specify directory of cell subtype prediction results
-sdir <- paste0(cdir[length(cdir)], 'cell_type_prediction/')
+sdir <- paste0(tail(cdir,1), 'cell_type_prediction/')
 
 # load latest Seurat object (if not already loaded)
 if (!exists('DATA')) {
@@ -151,13 +151,14 @@ ggsave(p, filename='UMAP_cell_type_correlation.png', path=paste0(sdir, celltype_
 rm(temp)
 
 
+
 # B-Cell GC subtype markers
 # =========================
 
 celltype_dir <- 'bcell_types_germsub_zonesub'
 
 # subset DATA to only contain clusters associated with the germinal center (GC)
-gc_clusters <- c('louvain_0.8','3','4','5','6','7','9','14')
+gc_clusters <- c('louvain_0.9','1','4','6','8','9','10','11')
 temp <- subset(DATA, cells = rownames(DATA@meta.data)[ (DATA@meta.data[[gc_clusters[1]]] %in% gc_clusters[2:length(gc_clusters)]) ])
 
 # load gene marker list
