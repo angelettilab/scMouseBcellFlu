@@ -49,11 +49,13 @@ for (m in mice) {
   seqdb_mouse <- seqdb[seqdb$MOUSE_NR %in% m, ]
   
   # find novel alleles (if any)
-  nv <- findNovelAlleles(seqdb_mouse, ighv)
+  novel_rows <- NULL
+  try (nv <- findNovelAlleles(seqdb_mouse, ighv))
+  try (novel_rows <- selectNovel(nv))
   
   # Extract and view the rows that contain successful novel allele calls
-  novel_rows <- selectNovel(nv)
-  if (nrow(novel_rows) > 0) {
+  
+  if (!is.null(novel_rows) && (nrow(novel_rows) > 0)) {
     png(filename=paste0(proj_dir, '/analysis/immcantation/genotyping/novel_alleles_', m, '.png'), height=2500, width=1800, res=300)
     plotNovel(seqdb_mouse, novel_rows[1, ])  # only plot first novel allele
     invisible(dev.off())
