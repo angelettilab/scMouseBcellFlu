@@ -28,7 +28,7 @@ ddir <- paste0(pdir,'data/')  # data subdirectory
 library(knitr)
 ```
 
-# Report {.tabset}
+# {.tabset}
 
 ## Data summary
 
@@ -90,12 +90,12 @@ cat('![](', adir, '01_qc/QC_organ_FILTERED.png', ')', sep='')
 
 ## B-cell purification {.tabset}
 ```{r}
-cdir <- paste0(adir, '02_cluster_scale/')
+cdir <- paste0(adir, '02_cluster/')
 ```
 
 ### Clustering
 ```{r}
-clust <- 'HC_16'
+clust <- 'louvain_0.65'
 ```
 
 ```{r, results='asis'}
@@ -106,7 +106,7 @@ cat('![](', cdir, 'clustering/clustering_', clust, '_umap.png', '){width=80%}', 
 
 ### Differential expression {.tabset}
 ```{r}
-edir <- paste0(adir,'03_diff_expr_scale/')
+edir <- paste0(adir,'03_diff_expr/')
 ```
 
 #### Violin plots
@@ -150,14 +150,14 @@ kable(gene_table)
 ### Filtered cells
 #### Predicted non-B-cells removed from the data
 ```{r, results='asis'}
-cat('![](', adir, '04_remove_cells_scale/umap_removed_cells.png', '){width=80%}', sep='')
+cat('![](', adir, '04_remove_cells/umap_removed_cells.png', '){width=80%}', sep='')
 ```
 
 
 ## Cell/cluster features {.tabset}
 
 ```{r}
-cdir <- paste0(adir, '06_cluster_scale/')
+cdir <- paste0(adir, '06_cluster/')
 ```
 
 ### Metadata (factors)
@@ -184,7 +184,7 @@ cat('![](', cdir, 'umap_plots/umap_metadata_cellcycle.png', ')', sep='')
 
 ### Clustering
 ```{r}
-clust <- 'louvain_0.9'
+clust <- 'HC_16'
 ```
 
 ```{r, results='asis'}
@@ -195,7 +195,7 @@ cat('![](', cdir, 'clustering/clustering_', clust, '_umap.png', '){width=80%}', 
 
 ### Differential expression {.tabset}
 ```{r}
-edir <- paste0(adir,'07_diff_expr_scale/')
+edir <- paste0(adir,'07_diff_expr/')
 ```
 
 #### Violin plots
