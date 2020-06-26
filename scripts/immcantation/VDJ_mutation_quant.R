@@ -25,12 +25,26 @@ for (g_file in geno_files) {
   # load the Change-O database file with germline sequence information (*_germ-pass.tab file)
   db <- readChangeoDb(g_file)
 
-  # calculate mutation frequencies
-  # NOTE: there are some options with this function to get more resolution on the mutation type/location/etc.
+  
+  # calculate mutation counts and frequencies
+  # mutaion counts per individual regions
   db <- observedMutations(db, sequenceColumn="SEQUENCE_IMGT", germlineColumn="GERMLINE_IMGT_D_MASK",
                           frequency=F, regionDefinition=IMGT_V_BY_REGIONS, combine=F)
+  # total mutation counts
+  db <- observedMutations(db, sequenceColumn="SEQUENCE_IMGT", germlineColumn="GERMLINE_IMGT_D_MASK",
+                          frequency=F, combine=T)
+  colnames(db)[colnames(db) == 'MU_COUNT'] <- 'MU_COUNT_TOT'
   
-  # view first few rows of new mutation frequency columns
+  # mutation frequency per individual regions
+  db <- observedMutations(db, sequenceColumn="SEQUENCE_IMGT", germlineColumn="GERMLINE_IMGT_D_MASK",
+                          frequency=T, regionDefinition=IMGT_V_BY_REGIONS, combine=F)
+  # total mutation frequency
+  db <- observedMutations(db, sequenceColumn="SEQUENCE_IMGT", germlineColumn="GERMLINE_IMGT_D_MASK",
+                          frequency=T, combine=T)
+  colnames(db)[colnames(db) == 'MU_FREQ'] <- 'MU_FREQ_TOT'
+  
+  
+  # view first few rows of new mutation columns
   # db %>% select(SEQUENCE_ID, starts_with("MU_")) %>% head(n=4)
   
   # extract some metadata from the SEQUENCE_ID column
@@ -55,7 +69,7 @@ for (g_file in geno_files) {
 
 # write the merged database to a file
 if (!dir.exists(mut_dir)) { dir.create(mut_dir) }
-writeChangeoDb(db_full, paste0(mut_dir, 'VDJseq_mutation_freq.tab'))
+writeChangeoDb(db_full, paste0(mut_dir, 'VDJseq_mutation_quant.tab'))
 
 
 
