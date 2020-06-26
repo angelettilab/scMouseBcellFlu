@@ -248,7 +248,7 @@ Rscript $script_path/04_diff_gene_expr.R \
 ############################
 Rscript $main/scripts/plotting/vary_umap_params.R \
 --Seurat_object_path $main/'analysis/06_cluster/seurat_object.rds' \
---plot_groups 'louvain_0.95' \
+--plot_groups 'HC_16' \
 --plot_features 'none' \
 --pre_dim_reduct 'mnn' \
 --umap_base_params 'dims=50, n.neighbors=50, min.dist=0.1, spread=5, repulsion.strength=0.5, n.epochs=500, learning.rate=0.5, negative.sample.rate=7, metric="euclidean", seed.use=42' \
