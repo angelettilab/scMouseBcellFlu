@@ -1,5 +1,9 @@
 #! /bin/bash -l
 
+# NOTE: this was the original workflow formulation, which does not involve
+# scaling or regressing the counts prior to integration. It is therefore
+# recommended that this workflow is NOT used.
+
 ########################
 ### DEFINE VARIABLES ###
 ########################

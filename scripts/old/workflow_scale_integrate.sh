@@ -4,7 +4,7 @@
 ### DEFINE VARIABLES ###
 ########################
 var_to_plot='dataset,mouse_nr,day_post_infection,organ,infection'
-var_to_regress='nCount_RNA,nFeature_RNA,percent_mito,CC.Diff'  # regress CC.Diff (S - G2M) instead of S and G2M separately
+var_to_regress='nCount_RNA,nFeature_RNA,perc_mito,CC.Diff'  # regress CC.Diff (S - G2M) instead of S and G2M separately
 # main='/home/jonrob/projects/d_angeletti_1910'
 # script_path='/home/jonrob/repos/sauron/scripts'
 main='/cephyr/users/jonrob/Hebbe/projects/d_angeletti_1910'
@@ -13,13 +13,13 @@ script_path='/cephyr/users/jonrob/Hebbe/repos/sauron/scripts'
 # script_path='/Users/jonrob/Documents/NBIS/repos/sauron/scripts'
 
 cd $main
-mkdir analysis
+# mkdir analysis
 
 
 ##################################
 ### ACTIVATE CONDA ENVIRONMENT ###
 ##################################
-# conda activate sauron-env  # macOS (local)
+# conda activate Sauron.v1  # macOS (local)
 source activate Sauron.v1  # linux/unix (cluster)
 
 
@@ -50,14 +50,14 @@ source activate Sauron.v1  # linux/unix (cluster)
 # --Seurat_object_path $main/'analysis/02_cluster_scale/seurat_object.rds' \
 # --columns_metadata $var_to_plot \
 # --regress $var_to_regress \
-# --PCs_use 'var,1' \
+# --PCs_use 'top,50' \
 # --var_genes 'seurat' \
 # --dim_reduct_use 'umap' \
 # --dim_reduct_params 'umap, n.neighbors=50, min.dist=0.1, spread=4, repulsion.strength=0.5, n.epochs=500, learning.rate=0.5, negative.sample.rate=7, metric="euclidean", seed.use=42;'\
 # 'umap10, n.neighbors=50, min.dist=0.1, spread=4, repulsion.strength=0.5, n.epochs=500, learning.rate=0.5, negative.sample.rate=7, metric="euclidean", seed.use=42' \
 # --pre_dim_reduct 'mnn' \
 # --cluster_use 'all' \
-# --cluster_method 'louvain,HC,hdbscan' \
+# --cluster_method 'louvain,HC' \
 # --assay 'RNA' \
 # --output_path $main/'analysis/02_cluster_scale' \
 # 2>&1 | tee $main/'analysis/02_cluster_scale/dr_and_cluster_log.txt'
@@ -70,7 +70,7 @@ source activate Sauron.v1  # linux/unix (cluster)
 # mkdir $main/'analysis/03_diff_expr_scale'
 # Rscript $script_path/04_diff_gene_expr.R \
 # --Seurat_object_path $main/'analysis/02_cluster_scale/seurat_object.rds' \
-# --clustering_use 'HC_16' \
+# --clustering_use 'HC_17' \
 # --metadata_use 'infection' \
 # --exclude_cluster 'NONE' \
 # --assay 'RNA' \
@@ -86,7 +86,7 @@ source activate Sauron.v1  # linux/unix (cluster)
 # --Seurat_object_path $main/'analysis/02_cluster_scale/seurat_object.rds' \
 # --marker_lists $main/'data/gene_lists/main_cell_types.csv' \
 # --assay 'RNA' \
-# --clustering_use 'HC_16' \
+# --clustering_use 'HC_17' \
 # --output_path $main/'analysis/02_cluster_scale/cell_type_prediction' \
 # 2>&1 | tee $main/'analysis/02_cluster_scale/cell_type_prediction_log.txt'
 
@@ -102,7 +102,7 @@ source activate Sauron.v1  # linux/unix (cluster)
 # mkdir $main/'analysis/04_remove_cells_scale'
 # Rscript $main/scripts/remove_cells.R \
 # --Seurat_object_path $main/'analysis/02_cluster_scale/seurat_object.rds' \
-# --remove 'HC_16,4,8,10,12,14,16' \
+# --remove 'HC_17,3,8,10,12,14,17' \
 # --keep 'cell_pred_correlation_main_cell_types,B_cell' \
 # --combine_method 'union' \
 # --output_type 'barcodes' \
@@ -111,9 +111,9 @@ source activate Sauron.v1  # linux/unix (cluster)
 
 
 
-# ####################################################
-# ### RE-LOAD DATASETS, EXCLUDING THE NON-B-BCELLS ###
-# ####################################################
+# ###################################################
+# ## RE-LOAD DATASETS, EXCLUDING THE NON-B-BCELLS ###
+# ###################################################
 # mkdir $main/'analysis/05_qc_scale'
 # Rscript $script_path/00_load_data.R \
 # --input_path $main/'data/cellranger' \
@@ -173,11 +173,11 @@ source activate Sauron.v1  # linux/unix (cluster)
 # --PCs_use 'top,50' \
 # --var_genes 'seurat' \
 # --dim_reduct_use 'umap' \
-# --dim_reduct_params 'umap, n.neighbors=50, min.dist=0.1, spread=4, repulsion.strength=0.5, n.epochs=500, learning.rate=0.5, negative.sample.rate=7, metric="euclidean", seed.use=42;'\
-# 'umap10, n.neighbors=50, min.dist=0.1, spread=4, repulsion.strength=0.5, n.epochs=500, learning.rate=0.5, negative.sample.rate=7, metric="euclidean", seed.use=42' \
+# --dim_reduct_params 'umap, n.neighbors=50, min.dist=0.1, spread=5, repulsion.strength=0.5, n.epochs=500, learning.rate=0.5, negative.sample.rate=7, metric="euclidean", seed.use=42;'\
+# 'umap10, n.neighbors=50, min.dist=0.1, spread=5, repulsion.strength=0.5, n.epochs=500, learning.rate=0.5, negative.sample.rate=7, metric="euclidean", seed.use=42' \
 # --pre_dim_reduct 'mnn' \
 # --cluster_use 'all' \
-# --cluster_method 'louvain,HC,hdbscan' \
+# --cluster_method 'louvain,HC' \
 # --assay 'RNA' \
 # --output_path $main/'analysis/06_cluster_scale' \
 # 2>&1 | tee $main/'analysis/06_cluster_scale/dr_and_cluster_log.txt'
@@ -190,7 +190,7 @@ source activate Sauron.v1  # linux/unix (cluster)
 Rscript $script_path/cell_type_prediction.R \
 --Seurat_object_path $main/'analysis/06_cluster_scale/seurat_object.rds' \
 --marker_lists $main/'data/gene_lists/main_cell_types.csv,'$main/'data/gene_lists/bcell_types.csv,'$main/'data/gene_lists/bcell_types_germsub.csv,'$main/'data/gene_lists/bcell_types_germsub_zonesub.csv' \
---clustering_use 'louvain_0.9' \
+--clustering_use 'louvain_0.95' \
 --assay 'RNA' \
 --output_path $main/'analysis/06_cluster_scale/cell_type_prediction' \
 2>&1 | tee $main/'analysis/06_cluster_scale/cell_subtype_prediction_log.txt'
@@ -202,7 +202,7 @@ Rscript $script_path/cell_type_prediction.R \
 ###################################
 Rscript $script_path/04_diff_gene_expr.R \
 --Seurat_object_path $main/'analysis/06_cluster_scale/seurat_object.rds' \
---clustering_use 'louvain_0.9' \
+--clustering_use 'louvain_0.95' \
 --metadata_use 'organ,infection' \
 --exclude_cluster 'NONE' \
 --assay 'RNA' \
@@ -211,27 +211,21 @@ Rscript $script_path/04_diff_gene_expr.R \
 
 
 
-
-
-
-
-
-# ############################
-# ### VARY UMAP PARAMETERS ###
-# ############################
-# Rscript $main/scripts/plotting/vary_umap_params.R \
-# --Seurat_object_path $main/'analysis/05_cluster_scale/seurat_object.rds' \
-# --plot_groups 'none' \
+############################
+### VARY UMAP PARAMETERS ###
+############################
+Rscript $main/scripts/plotting/vary_umap_params.R \
+--Seurat_object_path $main/'analysis/06_cluster_scale/seurat_object.rds' \
+--plot_groups 'louvain_0.95' \
+--plot_features 'none' \
+--pre_dim_reduct 'mnn' \
+--umap_base_params 'dims=50, n.neighbors=50, min.dist=0.1, spread=5, repulsion.strength=0.5, n.epochs=500, learning.rate=0.5, negative.sample.rate=7, metric="euclidean", seed.use=42' \
+--umap_vary_params 'n.neighbors,10,20,50,100,200; metric,"euclidean","correlation","cosine"; dims,10,20,30,50; n.epochs,200,300,400,500; learning.rate,0.1,0.3,0.5,1,2; min.dist,0.001,0.01,0.1,0.5; spread,0.1,0.5,1,3,5; set.op.mix.ratio,0,0.25,0.5,0.75,1; repulsion.strength,0.1,0.2,0.5,1,2,5; negative.sample.rate,1,2,5,7,10' \
+--assay 'RNA' \
+--output_path $main/'analysis/06_cluster_scale/umap_param_variation' \
+2>&1 | tee $main/'analysis/06_cluster_scale/vary_umap_params_log.txt'
 # --plot_features 'NaiveBcell,GC_DarkZone,GC_LightZone' \
-# --pre_dim_reduct 'mnn' \
-# --umap_base_params 'n.neighbors=50, min.dist=0.1, spread=4, repulsion.strength=0.5, n.epochs=500, learning.rate=0.5, negative.sample.rate=7, metric="euclidean", seed.use=42' \
-# --umap_vary_params 'n.neighbors,10,20,50,100,200; metric,"euclidean","correlation","cosine"; dims,10,20,30,50; n.epochs,200,300,400,500; learning.rate,0.1,0.3,0.5,1,2; min.dist,0.001,0.01,0.1,0.5; spread,0.1,0.5,1,3,5; set.op.mix.ratio,0,0.25,0.5,0.75,1; repulsion.strength,0.1,0.2,0.5,1,2,5; negative.sample.rate,1,2,5,7,10' \
-# --assay 'RNA' \
-# --add_metadata $main/'analysis/05_cluster_scale/cell_type_prediction/bcell_types_germsub/cell_pred_correlation_bcell_types_germsub.csv' \
-# --output_path $main/'analysis/05_cluster_scale/umap_param_variation' \
-# 2>&1 | tee $main/'analysis/05_cluster_scale/vary_umap_params_log.txt'
-
-
+# --add_metadata $main/'analysis/06_cluster_scale/cell_type_prediction/bcell_types_germsub/cell_pred_correlation_bcell_types_germsub.csv' \
 
 
 # ########################

@@ -7,6 +7,6 @@
 #SBATCH --mail-type=END
 #SBATCH -o run_wf.log
 
-singularity run ~/projects/d_angeletti_1910/scripts/sauron/sauron.sif bash ~/projects/d_angeletti_1910/scripts/run_workflow.sh
+singularity run ~/projects/d_angeletti_1910/scripts/sauron/sauron.sif bash ~/projects/d_angeletti_1910/scripts/scRNAseq_pipeline/run_workflow.sh
 
 

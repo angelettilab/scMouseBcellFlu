@@ -17,6 +17,7 @@ option_list = list(
   make_option(c("-r", "--regress"),               type = "character",   metavar="character",   default='none',  help="Variables to be regressed out using linear modeling."),
   make_option(c("-b", "--integration_method"),    type = "character",   metavar="character",   default='cca,orig.ident',  help="Integration method to be used. 'cca', mmn', 'scale' and 'combat' are available at the moment. The batches (column names in the metadata matrix) to be removed should be provided as arguments comma separated. E.g.: 'Combat,sampling_day'. For MNN, an additional integer parameter is supplied as the k-nearest neighbour."),
   make_option(c("-v", "--var_genes"),             type = "character",   metavar="character",   default='scran,.2',  help="Whether use 'Seurat' or the 'Scran' method for variable genes identification. An additional value can be placed after a comma to define the level of dispersion wanted for variable gene selection. 'Seurat,2' will use the threshold 2 for gene dispersions. Defult is 'scran,0.001'. For Scran, the user should inpup the level of biological variance 'Scran,0.001'. An additional blocking parameter (a column from the metadata) can ba supplied to 'Scran' method block variation comming from uninteresting factors, which can be parsed as 'Scran,0.2,Batch'."),
+  make_option(c("-N", "--nSeurat"),               type = "character",   metavar="character",   default='3000',  help="Number of var genes per dataset (as identified by seurat var gene selection) to use for the integration step."),
   make_option(c("-s", "--cluster_use"),           type = "character",   metavar="character",   default='all',  help="The cluster to be used for analysis."),
   make_option(c("-a", "--assay"),                 type = "character",   metavar="character",   default='RNA',  help="The default assay to use to integrate."),
   make_option(c("-o", "--output_path"),           type = "character",   metavar="character",   default='none',  help="Output directory")
@@ -50,6 +51,7 @@ initial.options <- commandArgs(trailingOnly = FALSE)
 script_path <- opt$sauron_script_path
 source( paste0(script_path,"/compute_hvgs.R") )
 source( paste0(script_path,"/fast_ScaleData.R") )
+source( paste0(script_path,"/inst_packages.R") )
 
 suppressMessages(suppressWarnings(library(Seurat)))
 suppressMessages(suppressWarnings(library(dplyr)))
@@ -172,7 +174,7 @@ if ((length(integration_method) >= 2) & (casefold(integration_method[1]) == "mnn
         temp <- read.csv2(paste0(opt$output_path,"/variable_genes/var_genes_",names(DATA.list)[i],"/HVG_info_",VAR_choice[1],".csv"),row.names=1)
         DATA.list[[i]]@assays[[opt$assay]]@meta.features <- temp
         DATA.list[[i]]@assays[[opt$assay]]@var.features <- rownames(temp)[temp$use]
-      } else {DATA.list[[i]] <- compute_hvgs(DATA.list[[i]],VAR_choice,paste0(opt$output_path,"/variable_genes/var_genes_",names(DATA.list)[i]),assay = opt$assay)}
+      } else {DATA.list[[i]] <- compute_hvgs(DATA.list[[i]],VAR_choice,paste0(opt$output_path,"/variable_genes/var_genes_",names(DATA.list)[i]),assay = opt$assay, nSeurat=as.numeric(opt$nSeurat))}
     }
     
     # select the most informative genes that are shared across all datasets:
@@ -224,7 +226,7 @@ if ((length(integration_method) >= 1) & (casefold(integration_method[1]) == "cca
     
     for (i in 1:length(DATA.list)) {
       #DATA.list[[i]] <- NormalizeData(DATA.list[[i]], verbose = FALSE,scale.factor = 1000)
-      DATA.list[[i]] <- compute_hvgs(DATA.list[[i]],VAR_choice,paste0(opt$output_path,"/var_genes_",names(DATA.list)[i]),assay = opt$assay)
+      DATA.list[[i]] <- compute_hvgs(DATA.list[[i]],VAR_choice,paste0(opt$output_path,"/var_genes_",names(DATA.list)[i]),assay = opt$assay, nSeurat=as.numeric(opt$nSeurat))
       gc()
     }
     universe <- unique(unlist(lapply(DATA.list,function(x){x@assays[[opt$assay]]@var.features})))
@@ -245,7 +247,7 @@ if ((length(integration_method) >= 1) & (casefold(integration_method[1]) == "cca
 ###########################
 if(DefaultAssay(DATA) == opt$assay){
   output_path <- paste0(opt$output_path,"/variable_genes/All_datasets_together")
-  DATA <- compute_hvgs(DATA,VAR_choice,output_path,assay = opt$assay)}
+  DATA <- compute_hvgs(DATA, VAR_choice, output_path, assay=opt$assay, nSeurat=as.numeric(opt$nSeurat))}
 #---------
 
 
