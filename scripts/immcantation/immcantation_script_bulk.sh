@@ -1,7 +1,6 @@
 # Immcantation workflow
 
 # specify main project directory
-# main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
 main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
 
 # add immcantation and ChangeO scripts to system path
