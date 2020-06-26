@@ -11,13 +11,13 @@ analysis_dir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/anal
 ##########################
 ### LOAD SEURAT OBJECT ###
 ##########################
-DATA <- readRDS('/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/04_cluster/seurat_object.rds')
+DATA <- readRDS('/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/06_cluster_scale/seurat_object.rds')
 
 
 ########################################
 ### LOAD AND INTEGRATE MUTATION DATA ###
 ########################################
-db <- read.delim('/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/immcantation/mutation/VDJseq_mutation_freq.tab',
+db <- read.delim('/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/immcantation/mutation/VDJseq_mutation_quant.tab',
                  stringsAsFactors=F)
 
 # get cell IDs in the same format as used in Seurat object
@@ -33,12 +33,19 @@ db <- db[!duplicated(cell_ids), ]
 cell_ids <- cell_ids[!duplicated(cell_ids)]
 
 # specify which columns to add to metadata
-db_add <- db
+cols <- colnames(db)
+# keep_cols <- c('V_CALL','D_CALL','J_CALL','C_CALL','V_CALL_10X','D_CALL_10X','J_CALL_10X',
+#                'V_CALL_GENOTYPED','CLONE','GERMLINE_V_CALL','GERMLINE_D_CALL','GERMLINE_J_CALL',
+#                cols[startsWith(cols, 'MU_')])
+keep_cols <- setdiff(cols, c('MOUSE_NR', 'CELL', 'CONSCOUNT', 'UMICOUNT', 'ORGAN', 'DAY_POST_INFECTION'))
+db_add <- db[, keep_cols]
 rownames(db_add) <- cell_ids
 
 # add mutation frequency data to Seurat object as metadata
 DATA <- AddMetaData(DATA, db_add, col.name=colnames(db_add))
 
+# export Seurat object with added metadata
+saveRDS(DATA, file='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/immcantation/seurat_object_VDJannot.rds')
 
 # define custom plotting function
 plotFeat <- function(SeurObj, featName, featMax=Inf, combineMethod='sum', colorPalette=viridis(100)){
@@ -81,9 +88,9 @@ plotFeat <- function(SeurObj, featName, featMax=Inf, combineMethod='sum', colorP
     plot_data[plot_data[,3] > featMax[i], 3] <- featMax[i]
     
     colors <- colorPalette[cut(plot_data[,3], breaks=length(colorPalette))]
-    plot(umap_coords, xlim=range(umap_coords[,1]), ylim=range(umap_coords[,2]), col='grey85', pch=16, cex=0.2, yaxt='n', xaxt='n')
+    plot(umap_coords, xlim=range(umap_coords[,1]), ylim=range(umap_coords[,2]), col='grey85', pch=16, cex=0.3, yaxt='n', xaxt='n')
     par(new=T)
-    plot(plot_data[,c(1:2)], xlim=range(umap_coords[,1]), ylim=range(umap_coords[,2]), col=colors, pch=16, cex=0.2, main=featName[i], yaxt='n', xaxt='n')
+    plot(plot_data[,c(1:2)], xlim=range(umap_coords[,1]), ylim=range(umap_coords[,2]), col=colors, pch=16, cex=0.3, main=featName[i], yaxt='n', xaxt='n')
   }
 }
 
@@ -91,7 +98,7 @@ plotFeat <- function(SeurObj, featName, featMax=Inf, combineMethod='sum', colorP
 # plot mutation data on UMAP
 # col_scale <- c("grey85","navy")
 col_scale <- viridis(100, direction=-1)
-col_scale <- magma(100, direction=-1)
+# col_scale <- magma(100, direction=-1)
 
 featName <- colnames(DATA@meta.data)[grepl('MU_', colnames(DATA@meta.data))]
 
@@ -100,11 +107,6 @@ png(paste0(analysis_dir, '/umap_VDJmut_all.png'), res=300, units='mm', width=120
 plotFeat(DATA, featName=featName, featMax=20, combineMethod='sum', colorPalette=col_scale)
 invisible(dev.off())
 # plotFeat(DATA, featName=featName, combineMethod='sep', colorPalette=col_scale)
-
-
-
-
-
 
 
 
