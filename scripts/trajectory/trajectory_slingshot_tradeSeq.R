@@ -166,7 +166,7 @@ if ( dim_reduct_method == 'dm' ) {
 cat("\n### RUNNING SLINGSHOT TRAJECTORY INFERENCE ###\n")
 
 # extract fields
-clustering <- DATA@meta.data[, clustering_use]
+clustering <- as.factor(DATA@meta.data[, clustering_use])
 dimred_use <- DATA@reductions[[dim_reduct_method]]@cell.embeddings
 dimred_vis <- DATA@reductions[[opt$dim_reduct_vis]]@cell.embeddings
 counts <- as.matrix( DATA@assays[[opt$assay]]@counts )
