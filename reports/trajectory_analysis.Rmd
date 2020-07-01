@@ -21,12 +21,13 @@ knitr::opts_chunk$set(echo = F, results = 'hide', fig.width=10)
 pdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/'  # parent directiory
 adir <- paste0(pdir,'analysis/')  # analysis subdirectory
 ddir <- paste0(pdir,'data/')  # data subdirectory
-cdir <- paste0(adir,'04_cluster/')  # clustering subdirectory
+cdir <- paste0(adir,'06_cluster/')  # clustering subdirectory
 sdir <- paste0(cdir,'cell_type_prediction/')  # cell type prediction subdirectory
-tdirs <- dir(adir, '^trajectory_\\d')  # analysis subdirectories starting with "trajectory_"
+tdir_parent <- paste0(adir, 'trajectory_slingshot/')  # slingshot trajectory analysis subdirectory
+tdirs <- dir(tdir_parent, '^trajectory_\\d')  # subdirectories for individual trajectory runs, each starting with "trajectory_"
 
 # specify clustering type used
-clustering_use <- 'louvain_0.95'
+clustering_use <- 'HC_16'
 ```
 
 ```{r}
@@ -76,7 +77,7 @@ kable(gene_table)
 
 #### Summary of trajectory inference run parameters
 ```{r, results='asis'}
-traj_table <- read.csv(paste0(adir, 'trajectory_summary/trajectory_runs_summary.csv'), row.names=1, stringsAsFactors=F)
+traj_table <- read.csv(paste0(tdir_parent, 'trajectory_runs_summary.csv'), row.names=1, stringsAsFactors=F)
 traj_table[] <- lapply(traj_table, as.character)
 kable(traj_table)
 ```
@@ -89,7 +90,7 @@ cat('![](', cdir, 'clustering/clustering_', clustering_use, '_umap.png', '){widt
 
 ```{r, results='asis'}
 for (t in tdirs) {
-  tdir <- paste0(adir, t, '/')
+  tdir <- paste0(tdir_parent, t, '/')
   
   traj_num <- unlist(strsplit(t, '_'))[2]
   cat('###', traj_num, '{.tabset} \n')
@@ -98,6 +99,9 @@ for (t in tdirs) {
   cat('##### UMAP and first few diffusion map components (DCs) \n')
   cat('![](', tdir, 'diffusion_map_components.png', ') \n\n', sep='')
   
+  cat('#### Trajectory Lineages \n')
+  cat('##### UMAP with trajectory lineage pathways overlaid \n')
+  cat('![](', tdir, 'trajectory_lineages.png', '){width=70%} \n\n', sep='')
   
   cat('#### Trajectory Pseudotime \n')
   cat('##### UMAP colored by pseudotime along the trajectory \n')
@@ -107,16 +111,23 @@ for (t in tdirs) {
     curve_nums <- unique(unlist(lapply(dir(tdir, '^curve\\d_'), function(x) unlist(strsplit(x, '_'))[1])))
     fig_name <- 'trajectory_curves_pseudotime.png'
     cat('![](', tdir, fig_name, ') \n\n', sep='')
-  } else {
-    # show figure with only one curve
+  } else if (length(fig_name) == 1) {
+    # show figure with only selected curve
     curve_nums <- unlist(strsplit(fig_name, '_'))[2]
     cat('![](', tdir, fig_name, '){width=50%} \n\n', sep='')
+  } else {
+    # show figures with selected curves
+    curve_nums <- unlist(lapply(fig_name, function(x) unlist(strsplit(x, '_'))[2]))
+    for (fname in fig_name) {
+      cat('![](', tdir, fname, '){width=40%} ', sep='')
+    }
+    cat('\n\n')
   }
   
   for (i in seq(length(curve_nums))) {
     
     if (length(curve_nums) > 1) {
-      cat('#### Tr.', i, 'Genes {.tabset} \n')
+      cat('#### Tr.', sub('curve','',curve_nums[i]), 'Genes {.tabset} \n')
     } else {
       cat('#### Trajectory Genes {.tabset} \n')
     }
