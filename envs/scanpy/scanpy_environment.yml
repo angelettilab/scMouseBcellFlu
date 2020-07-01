@@ -1,0 +1,27 @@
+name: scanpy-env
+channels:
+ - conda-forge
+ - bioconda
+ - defaults
+ - anaconda
+dependencies:
+ - python=3.6.7
+ - scanpy=1.4.6
+ - notebook
+ - jupyter_contrib_nbextensions
+ - multicore-tsne
+ - python-igraph
+ - louvain
+ - leidenalg
+ - matplotlib-venn
+ - scrublet
+ - python-annoy
+ - loompy
+ - bbknn
+ - argparse
+ - anndata2ri
+ - pip
+ - pip:
+   - mnnpy
+   - scanorama
+   - fa2   
