@@ -1,4 +1,5 @@
 # This script generates some additional plots from the slingshot/tradeSeq trajectory inference analysis results.
+# Use conda environment: trajectory-env
 
 # load packages
 suppressMessages(suppressWarnings({

@@ -1,4 +1,5 @@
 # This script generates some additional plots from the scRNA-seq analysis pipeline results.
+# Use conda environment: Sauron.v1
 
 # load packages
 suppressMessages(suppressWarnings({
