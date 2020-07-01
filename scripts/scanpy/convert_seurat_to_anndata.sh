@@ -1,36 +1,28 @@
 #! /bin/bash -l
 
-########################
-### DEFINE VARIABLES ###
-########################
-# main='/home/jonrob/projects/d_angeletti_1910'
-# main='/cephyr/users/jonrob/Hebbe/projects/d_angeletti_1910'
+# Converts a Seurat object (.rds file) into a .loom file and
+# AnnData object (.h5ad file) in the same directory
+
+# Specify paths
 main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
+seurat_object=$main'/analysis/06_cluster/seurat_object.rds'
 
 cd $main
 
+# activate conda environment
+source activate Sauron.v1
 
-# Activate conda environment
-conda activate Sauron.v1  # macOS (local)
-# source activate Sauron.v1  # linux/unix (cluster)
+# Convert Seurat .rds object to .loom
+loom_object="${seurat_object//.rds/.loom}"
+Rscript $main'/scripts/scanpy/seurat2loom.R' -i $seurat_object -o $loom_object
 
-
-###############################################
-### CONVERT SEURAT OBJECT TO ANNDATA OBJECT ###
-###############################################
-mkdir -p $main'/analysis/trajectory_paga'
-Rscript /Users/jonrob/Documents/NBIS/repos/single-cell-hackathon-2020/scanpy/seurat2loom.R \
--i $main'/analysis/immcantation/seurat_object_VDJannot.rds' \
--o $main'/analysis/trajectory_paga/seurat_object_VDJannot.loom'
-
-# activate scanpy environment
+# change conda environment to scanpy-env
 conda deactivate
-conda activate hackathon_scanpy
+source activate scanpy-env
 
 # convert loom file to h5ad file (anndata object) for use in scanpy
-python /Users/jonrob/Documents/NBIS/repos/single-cell-hackathon-2020/scanpy/loom2anndata.py \
--i $main'/analysis/trajectory_paga/seurat_object_VDJannot.loom' \
--o $main'/analysis/trajectory_paga/anndata_object_VDJannot.h5ad'
+ann_object="${loom_path//.loom/.h5ad}"
+python $main'/scripts/scanpy/loom2anndata.py' -i $loom_object -o $ann_object
 
 
 
