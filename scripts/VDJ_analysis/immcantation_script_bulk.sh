@@ -1,4 +1,10 @@
-# Immcantation workflow
+#!/bin/bash
+
+# Immcantation VDJ analysis workflow
+
+##########################
+### DEFINE DIRECTORIES ###
+##########################
 
 # specify main project directory
 main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
@@ -7,6 +13,10 @@ main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
 PATH="$PATH:/Users/jonrob/Documents/NBIS/repos/immcantation/scripts"
 PATH="$PATH:/Users/jonrob/Library/Python/3.7/bin"
 
+
+#############################################
+### RETRIEVE IG BLAST REFERENCE DATABASES ###
+#############################################
 
 # Download reference databases
 fetch_igblastdb.sh -o $main/data/immcantation/igblast
