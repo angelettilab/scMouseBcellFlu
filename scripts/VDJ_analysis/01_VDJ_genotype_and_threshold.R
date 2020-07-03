@@ -19,15 +19,6 @@ print(t(t(unlist(opt))))
 
 # TODO: if some path(s) are not provided (i.e., option = 'none'), try to construct a default using relative paths.
 
-# opt = list(
-#   VDJ_data_path = '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/TEST/data/VDJ_OTUs',
-#   metadata_file = '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/TEST/data/metadata.csv',
-#   germline_path = '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/TEST/data/immcantation/germlines',
-#   density_method = 'density',
-#   default_threshold = '0.1',
-#   output_path = '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/TEST/analysis/immcantation'
-# )
-
 if (!dir.exists(opt$output_path)) { dir.create(opt$output_path, recursive=T) }
 setwd(opt$output_path)
 #---------
