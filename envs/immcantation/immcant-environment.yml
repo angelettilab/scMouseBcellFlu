@@ -1,16 +1,23 @@
 name: immcant-env
 channels:
+ - anaconda
  - bioconda
  - conda-forge
  - defaults
 dependencies:
- - igblast=1.15.0 
+ - biopython=1.74
+ - igblast=1.15.0
+ - libopenblas=0.3.7
+ - pip=20.1.1
+ - python=3.7.7
  - r-base=3.6.3
- - rstudio=1.1.456
  - r-alakazam=0.3.0
+ - r-ape=5.4
+ - r-optparse=1.6.2
  - r-shazam=0.2.3
  - r-tigger=0.4.0
- - r-ape=5.4
- 
-# also need to run: pip3 install changeo --user 
+ - rstudio=1.1.456
+ - wget=1.20.1
+ - pip:
+   - changeo==1.0.0
 
