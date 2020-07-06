@@ -9,10 +9,17 @@
 main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
 
 
-##################################
-### ACTIVATE CONDA ENVIRONMENT ###
-##################################
+###########################
+### PREPARE ENVIRONMENT ###
+###########################
 source activate immcant-env
+
+# !IMPORTANT!
+# The Immcantation pipeline requires some accessory scripts that are not
+# included in a nicely packaged conda or python package, but instead must be
+# retrieved from their Bitbucket repository.
+# All files in "https://bitbucket.org/kleinstein/immcantation/src/master/scripts/"
+# should be downloaded to your local "$main/scripts/immcantation" directory.
 PATH="$PATH:"$main"/scripts/immcantation"  # add immcantation scripts directory to the PATH
 
 
