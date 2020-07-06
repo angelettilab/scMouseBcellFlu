@@ -6,7 +6,7 @@
 ### DEFINE DIRECTORIES ###
 ##########################
 # specify main project directory
-main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/TEST'
+main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
 
 
 ##################################
@@ -136,7 +136,32 @@ do
 done
 
 
+
+####################################
+### QUANTIFY VDJ MUTATION BURDEN ###
+####################################
+# exports results as ChangeO database file "VDJseq_mutation_quant.tab"
+Rscript $main/scripts/VDJ_analysis/02_VDJ_mutation_quant.R \
+--genotyped_path $main'/analysis/immcantation/genotyping' \
+--output_path $main'/analysis/immcantation/mutation'
+
+
+# Change conda environment to Sauron.v1
 conda deactivate
+source activate Sauron.v1
+
+
+#####################################
+### ADD VDJ DATA TO SEURAT OBJECT ###
+#####################################
+Rscript $main/scripts/VDJ_analysis/03_VDJ_RNAseq_integration.R \
+--Seurat_object_path $main'/analysis/06_cluster/seurat_object.rds' \
+--changeo_db_path $main'/analysis/immcantation/mutation/VDJseq_mutation_quant.tab' \
+--output_path $main'/analysis/immcantation/seurat_object_VDJannot.rds'
+
+
+conda deactivate
+
 
 
 
