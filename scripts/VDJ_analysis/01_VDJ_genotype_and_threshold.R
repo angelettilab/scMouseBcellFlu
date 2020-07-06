@@ -7,12 +7,12 @@ suppressMessages(suppressWarnings(library(optparse)))
 ##################################
 cat("\nRunning GENOTYPE INFERENCE and NEAREST NEIGHBOR ANALYSIS with the following parameters ...\n")
 option_list = list(
-  make_option(c("-i", "--VDJ_data_path"),           type = "character",   metavar="character",   default='none',    help="Path of the directory containing VDJ fasta files."),
-  make_option(c("-m", "--metadata_file"),           type = "character",   metavar="character",   default='none',    help="Filename (including path) of sample metadata.csv file."),
-  make_option(c("-g", "--germline_path"),           type = "character",   metavar="character",   default='none',    help="Path of the directory containing IMGT germline data (should contain the 'imgt' folder)"),
-  make_option(c("-d", "--density_method"), type = "character",   metavar="character",   default='density', help="Method for finding the VDJ sequence hamming distance threshold defining distinct clones. Options are 'density', 'gmm', or 'none'. For 'gmm', one can also specify the model after a comma; e.g., 'gmm,gamma-gamma' (default), 'gmm,gamma-norm', 'gmm,norm-norm'."),
-  make_option(c("-t", "--default_threshold"),       type = "character",   metavar="character",   default='0.1',     help="Default nearest neighbor hamming distance threshold to use if the threshold estimation fails or is not performed."),
-  make_option(c("-o", "--output_path"),             type = "character",   metavar="character",   default='none',    help="Output directory.")
+  make_option(c("-i", "--VDJ_data_path"),       type = "character",   metavar="character",   default='none',    help="Path of the directory containing VDJ fasta files."),
+  make_option(c("-m", "--metadata_file"),       type = "character",   metavar="character",   default='none',    help="Filename (including path) of sample metadata.csv file."),
+  make_option(c("-g", "--germline_path"),       type = "character",   metavar="character",   default='none',    help="Path of the directory containing IMGT germline data (should contain the 'imgt' folder)"),
+  make_option(c("-d", "--density_method"),      type = "character",   metavar="character",   default='density', help="Method for finding the VDJ sequence hamming distance threshold defining distinct clones. Options are 'density', 'gmm', or 'none'. For 'gmm', one can also specify the model after a comma; e.g., 'gmm,gamma-gamma' (default), 'gmm,gamma-norm', 'gmm,norm-norm'."),
+  make_option(c("-t", "--default_threshold"),   type = "character",   metavar="character",   default='0.1',     help="Default nearest neighbor hamming distance threshold to use if the threshold estimation fails or is not performed."),
+  make_option(c("-o", "--output_path"),         type = "character",   metavar="character",   default='none',    help="Output directory.")
 )
 opt = parse_args(OptionParser(option_list=option_list))
 print(t(t(unlist(opt))))
@@ -104,6 +104,7 @@ for (m in mice) {
   
   # correct allele calls based on the personalized genotype
   seqdb_mouse <- reassignAlleles(seqdb_mouse, gtseq_mouse)
+  #---------
   
   
   ###################################
@@ -152,6 +153,7 @@ for (m in mice) {
   } else {
     stop(paste0('Invalid density_method: "', dist_args[1], '". Valid options are "density", "gmm", or "none".'))
   }
+  #---------
   
   
   ###########################
@@ -161,10 +163,17 @@ for (m in mice) {
   write.csv(predicted_thresholds, file=paste0(threshold_dir, '/predicted_thresholds.csv'), quote=F, row.names=F)
   
 }
+#---------
 
 
-
-
+##########################
+### PRINT SESSION INFO ###
+##########################
+cat('R SESSION INFO:\n')
+Sys.info()
+cat('\n\n\n\n')
+sessionInfo()
+#---------
 
 
 
