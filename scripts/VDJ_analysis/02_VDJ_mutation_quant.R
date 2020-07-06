@@ -1,16 +1,33 @@
-# Script for B-cell VDJ mutation quantification using Immcantation package
+#!/usr/bin/env Rscript
 
-library(alakazam)
-library(shazam)
-library(tigger)
-library(dplyr)
-library(ggplot2)
+suppressMessages(suppressWarnings(library(optparse)))
+
+##################################
+### DEFINE PATH TO LOCAL FILES ###
+##################################
+cat("\nRunning VDJ MUTATION QUANTIFICATION with the following parameters ...\n")
+option_list = list(
+  make_option(c("-i", "--genotyped_path"),      type = "character",   metavar="character",   default='none',    help="Path of the directory containing the output genotype (*_germ-pass.tab) files generated using the ChangeO CreateGermlines function."),
+  make_option(c("-o", "--output_path"),         type = "character",   metavar="character",   default='none',    help="Output directory.")
+)
+opt = parse_args(OptionParser(option_list=option_list))
+print(t(t(unlist(opt))))
+
+if (!dir.exists(opt$output_path)) { dir.create(opt$output_path, recursive=T) }
+setwd(opt$output_path)
+#---------
 
 
-# specify directory containing genotyped VDJ files
-proj_dir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/'
-geno_dir <- paste0(proj_dir, 'analysis/immcantation/genotyping/')
-mut_dir <- paste0(proj_dir, 'analysis/immcantation/mutation/')
+##############################
+### LOAD/INSTALL LIBRARIES ###
+##############################
+cat("\nLoading libraries ...\n\n")
+suppressMessages(suppressWarnings(library(alakazam)))
+suppressMessages(suppressWarnings(library(shazam)))
+suppressMessages(suppressWarnings(library(tigger)))
+suppressMessages(suppressWarnings(library(dplyr)))
+suppressMessages(suppressWarnings(library(ggplot2)))
+#---------
 
 
 ###############################
@@ -18,13 +35,14 @@ mut_dir <- paste0(proj_dir, 'analysis/immcantation/mutation/')
 ###############################
 
 # get list of available files and iterate through each file
-geno_files <- dir(geno_dir, 'germ-pass[.]tab', full.names=T)
+geno_files <- dir(opt$genotyped_path, 'germ-pass[.]tab', full.names=T)
 db_full <- NULL
 for (g_file in geno_files) {
 
+  cat('Processing file:', basename(g_file), '...\n')
+  
   # load the Change-O database file with germline sequence information (*_germ-pass.tab file)
   db <- readChangeoDb(g_file)
-
   
   # calculate mutation counts and frequencies
   # mutaion counts per individual regions
@@ -42,10 +60,6 @@ for (g_file in geno_files) {
   db <- observedMutations(db, sequenceColumn="SEQUENCE_IMGT", germlineColumn="GERMLINE_IMGT_D_MASK",
                           frequency=T, combine=T)
   colnames(db)[colnames(db) == 'MU_FREQ'] <- 'MU_FREQ_TOT'
-  
-  
-  # view first few rows of new mutation columns
-  # db %>% select(SEQUENCE_ID, starts_with("MU_")) %>% head(n=4)
   
   # extract some metadata from the SEQUENCE_ID column
   organ_day <- unlist(lapply(db$SEQUENCE_ID, function(x) tail(unlist(strsplit(x, '-|_')), 2)[1]))
@@ -67,13 +81,23 @@ for (g_file in geno_files) {
   
 }
 
-# write the merged database to a file
-if (!dir.exists(mut_dir)) { dir.create(mut_dir) }
-writeChangeoDb(db_full, paste0(mut_dir, 'VDJseq_mutation_quant.tab'))
+# write the merged ChangeO database containing mutation data to a file
+out_file <- 'VDJseq_mutation_quant.tab'
+cat('\nWriting merged ChangeO database file:', out_file, '...\n')
+if (!dir.exists(opt$output_path)) { dir.create(opt$output_path, recursive=T) }
+writeChangeoDb(db_full, file.path(opt$output_path, out_file))
+cat('Done!\n\n')
+#---------
 
 
-
-
+##########################
+### PRINT SESSION INFO ###
+##########################
+cat('R SESSION INFO:\n')
+Sys.info()
+cat('\n\n\n\n')
+sessionInfo()
+#---------
 
 
 
