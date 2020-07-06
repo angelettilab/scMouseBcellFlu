@@ -100,14 +100,12 @@ Rscript $main/scripts/VDJ_analysis/01_VDJ_genotype_and_threshold.R \
 ############################################
 ### DEFINE CLONES AND GERMLINE SEQUENCES ###
 ############################################
-# Get list of mouse numbers to process
-mouse_nums=(`ls $main/analysis/immcantation/genotyping/IGHV-genotyped_M{?,??}.tab | awk -F '[_.]' '{print $(NF-1)}'`)
+# extract mouse numbers and threshold values (columns 1 and 2, respectively) from predicted_thresholds.csv
+mouse_nums=(`awk -F "\"*,\"*" 'FNR > 1 {print $1}' $main/'analysis/immcantation/threshold_estimation/predicted_thresholds.csv'`)
+thresholds=(`awk -F "\"*,\"*" 'FNR > 1 {print $2}' $main/'analysis/immcantation/threshold_estimation/predicted_thresholds.csv'`)
 
 # create sequence 0 to #mice
 indx=($(seq 0 $(( ${#mouse_nums[@]} - 1 )) ))
-
-# extract threshold values from .csv
-thresholds=(`awk -F "\"*,\"*" 'FNR > 1 {print $2}' $main/'analysis/immcantation/threshold_estimation/predicted_thresholds.csv'`)
 
 # for mouse in ${mouse_nums[@]}
 for i in ${indx[@]}
