@@ -24,9 +24,9 @@ source activate Sauron.v1  # linux/unix (cluster)
 
 
 
-###########################################
-### LOAD DATASETS, EXCLUDING NON-BCELLS ###
-###########################################
+#####################
+### LOAD DATASETS ###
+#####################
 mkdir $main/'analysis/01_qc'
 Rscript $script_path/00_load_data.R \
 --input_path $main/'data/cellranger' \
