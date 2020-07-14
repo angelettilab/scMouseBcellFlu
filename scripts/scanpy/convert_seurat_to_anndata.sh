@@ -21,7 +21,7 @@ conda deactivate
 source activate scanpy-env
 
 # convert loom file to h5ad file (anndata object) for use in scanpy
-ann_object="${loom_path//.loom/.h5ad}"
+ann_object="${loom_object//.loom/.h5ad}"
 python $main'/scripts/scanpy/loom2anndata.py' -i $loom_object -o $ann_object
 
 
