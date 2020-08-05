@@ -3,6 +3,8 @@
 
 # specific data directories
 /data/cellranger*
+/data/immcantation/germlines
+/data/immcantation/igblast
 /data/Jay
 /data/VDJ_OTUs
 /data/rna_fastq
