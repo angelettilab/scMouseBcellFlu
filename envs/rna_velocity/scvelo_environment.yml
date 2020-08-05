@@ -1,4 +1,4 @@
-name: scvelo
+name: scvelo-env
 channels:
   - defaults
 dependencies:
