@@ -8,10 +8,10 @@ library(dplyr)
 library(tidyr)
 library(tibble)
 library(pheatmap)
-# library(heatmap3)
 library(SingleCellExperiment)
 
-# sce <- readRDS('/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/trajectory_slingshot/trajectory_05/sce_object.rds')
+# Pre-load some inputs
+# sce <- readRDS('/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/trajectory_slingshot/trajectory_07/sce_object.rds')
 # DATA <- readRDS('/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/06_cluster/seurat_object.rds')
 # DATA <- subset(DATA, cells=sce$slingshot@rownames)
 # clustering <- as.factor(DATA@meta.data[, 'HC_16']) %>% setNames(colnames(DATA))
@@ -108,7 +108,7 @@ p <- pheatmap(curves_interp,
               color=magma(200,direction=-1),
               clustering_distance_rows='correlation',
               breaks=seq(-1, 4, length.out=200),
-              cutree_rows=3,
+              cutree_rows=4,
               labels_col=xvals,
               angle_col=0,
               border_color=NA,
