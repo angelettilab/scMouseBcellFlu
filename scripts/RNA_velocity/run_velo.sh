@@ -7,6 +7,6 @@
 #SBATCH --mail-type=END
 #SBATCH -o run_velo.log
 
-singularity run ~/projects/d_angeletti_1910/envs/rna_velocity/velocyto.sif bash ~/projects/d_angeletti_1910/scripts/run_velocyto.sh
+singularity run ~/projects/d_angeletti_1910/envs/rna_velocity/velocyto.sif bash ~/projects/d_angeletti_1910/scripts/velocyto_get_spliced_unspliced.sh
 
 
