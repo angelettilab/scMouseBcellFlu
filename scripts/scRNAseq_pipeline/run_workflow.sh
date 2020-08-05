@@ -5,12 +5,8 @@
 ########################
 var_to_plot='dataset,mouse_nr,day_post_infection,organ,infection'
 var_to_regress='nCount_RNA,nFeature_RNA,perc_mito,CC.Diff'  # regress CC.Diff (S - G2M) instead of S and G2M separately
-# main='/home/jonrob/projects/d_angeletti_1910'
-# script_path='/home/jonrob/repos/sauron/scripts'
-main='/cephyr/users/jonrob/Hebbe/projects/d_angeletti_1910'
-script_path='/cephyr/users/jonrob/Hebbe/repos/sauron/scripts'
-# main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
-# script_path='/Users/jonrob/Documents/NBIS/repos/sauron/scripts'
+main='/home/jonrob/projects/d_angeletti_1910'
+script_path='/home/jonrob/repos/sauron/scripts'
 
 cd $main
 # mkdir analysis
@@ -241,58 +237,6 @@ Rscript $script_path/04_diff_gene_expr.R \
 --output_path $main/'analysis/07_diff_expr' \
 2>&1 | tee $main/'analysis/07_diff_expr/diff_expr_log.txt'
 
-
-
-############################
-### VARY UMAP PARAMETERS ###
-############################
-Rscript $main/scripts/plotting/vary_umap_params.R \
---Seurat_object_path $main/'analysis/06_cluster/seurat_object.rds' \
---plot_groups 'HC_16' \
---plot_features 'none' \
---pre_dim_reduct 'mnn' \
---umap_base_params 'dims=50, n.neighbors=50, min.dist=0.1, spread=5, repulsion.strength=0.5, n.epochs=500, learning.rate=0.5, negative.sample.rate=7, metric="euclidean", seed.use=42' \
---umap_vary_params 'n.neighbors,10,20,50,100,200; metric,"euclidean","correlation","cosine"; dims,10,20,30,50; n.epochs,200,300,400,500; learning.rate,0.1,0.3,0.5,1,2; min.dist,0.001,0.01,0.1,0.5; spread,0.1,0.5,1,3,5; set.op.mix.ratio,0,0.25,0.5,0.75,1; repulsion.strength,0.1,0.2,0.5,1,2,5; negative.sample.rate,1,2,5,7,10' \
---assay 'RNA' \
---output_path $main/'analysis/06_cluster/umap_param_variation' \
-2>&1 | tee $main/'analysis/06_cluster/vary_umap_params_log.txt'
-# --plot_features 'NaiveBcell,GC_DarkZone,GC_LightZone' \
-# --add_metadata $main/'analysis/06_cluster/cell_type_prediction/bcell_types_germsub/cell_pred_correlation_bcell_types_germsub.csv' \
-
-
-# ########################
-# ### RUN VDJ ANALYSIS ###
-# ########################
-# # Only involves Ig, as the data is from B-cells
-# # - top_TCRs - most abundant for visualization
-# # - paired_only - alpha & beta, or only alpha, beta separately (heavy and light chain in our case)
-# # - cdr3 is variable region within TCR or antibody - confers specificity and affinity to targeted protein
-# # - only_coding_cdr3 - only select options that actually code for something
-# # - same_scale - for different metadata comparisons
-# Rscript $script_path/VDJ_analysis.R \
-# --Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
-# --VDJ_annotation_path $main/'data/VDJ_OTUs' \
-# --columns_metadata 'infection,organ' \
-# --top_TCRs '10' \
-# --paired_only 'true' \
-# --only_coding_cdr3 'true' \
-# --same_scale 'true' \
-# --assay 'RNA' \
-# --output_path $main/'analysis/06_VDJ_analysis_paired' \
-# 2>&1 | tee $main/log/'14_VDJ_analysis_paired_log.txt'
-
-# # run again, but unpaired
-# Rscript $script_path/VDJ_analysis.R \
-# --Seurat_object_path $main/'analysis/04_cluster/seurat_object.rds' \
-# --VDJ_annotation_path $main/'data/VDJ_OTUs' \
-# --columns_metadata 'infection,organ' \
-# --top_TCRs '10' \
-# --paired_only 'false' \
-# --only_coding_cdr3 'true' \
-# --same_scale 'true' \
-# --assay 'RNA' \
-# --output_path $main/'analysis/06_VDJ_analysis_unpaired' \
-# 2>&1 | tee $main/log/'15_VDJ_analysis_unpaired_log.txt'
 
 
 
