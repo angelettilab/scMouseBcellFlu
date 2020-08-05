@@ -35,9 +35,7 @@ to
 
 ## Singularity
 
-[Singularity](https://sylabs.io/guides/latest/user-guide/) is essentially an entire mini virtual computer wrapped up in a single file, called a singularity image file (`.sif`). This means that it will function identically regardless of the operating system it is run on. _However_, Singularity currently only works on UNIX/Linux systems, though there is a beta MacOS version with some limited functionality.
-
-The advantage of singularity is that you can build a conda environment and wrap it up into a singularity image file, greatly reducing the number of files required to run a script or pipeline that depends on the environment. This is particularly ideal for HPC systems such as UPPMAX, where users are often strictly limited on the number of allowed files on their drive.
+[Singularity](https://sylabs.io/guides/latest/user-guide/) wraps up code and environment into a single container file (`.sif`). This means that it will function identically regardless of the operating system it is run on. _However_, Singularity currently only works on UNIX/Linux systems, though there is a beta MacOS version with some limited functionality.
 
 Many of the subdirectories in this directory contain pre-built `.sif` files that can be used on e.g., UPPMAX instead of a conda environment. There are also instructions on how to re-build the `.sif` file, but note that this will require that you have a Mac or Linux with Singularity installed.
 
@@ -94,14 +92,6 @@ NOTE: The conda environment file for the Sauron package can be found in the [Sau
 - `build_singularity_image.sh` is a short bash script that contains instructions on how to build the `trajectory.sif` image file using the `trajectory_singularity.def` file.
 
 - `trajectory_environment.yml` is the conda environment definition file used to create a conda environment (named "trajectory-env") that contains the dependencies required to use the [slingshot](https://bioconductor.org/packages/release/bioc/vignettes/slingshot/inst/doc/vignette.html) and [tradeSeq](https://www.bioconductor.org/packages/release/bioc/vignettes/tradeSeq/inst/doc/tradeSeq.html) R packages.
-
-
-
-
-
-
-
-
 
 
 
