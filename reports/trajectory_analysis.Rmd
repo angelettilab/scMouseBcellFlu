@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = F, results = 'hide', fig.width=10)
 
 ```{r}
 # specify relevant directory information
-pdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/'  # parent directiory
+pdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/scMouseBcellFlu/'  # parent directiory
 adir <- paste0(pdir,'analysis/')  # analysis subdirectory
 ddir <- paste0(pdir,'data/')  # data subdirectory
 cdir <- paste0(adir,'06_cluster/')  # clustering subdirectory

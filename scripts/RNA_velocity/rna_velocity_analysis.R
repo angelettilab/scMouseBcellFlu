@@ -1,6 +1,6 @@
 
 # specify relevant directories
-projdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
+projdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/scMouseBcellFlu'
 loomdir <- paste0(projdir, '/data/rna_velocity/loom_files')
 velodir <- paste0(projdir, '/analysis/rna_velocity')
 if (!dir.exists(velodir)) { dir.create(velodir, recursive=T) }
@@ -74,7 +74,7 @@ emat <- merged_data$spliced
 nmat <- merged_data$unspliced
 
 # load Seurat object
-DATA <- readRDS('/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/analysis/04_cluster/seurat_object.rds')
+DATA <- readRDS('/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/scMouseBcellFlu/analysis/04_cluster/seurat_object.rds')
 
 # subset Seurat object to only include cells in loom files
 DATA <- subset(DATA, cells=colnames(DATA)[colnames(DATA) %in% colnames(emat)])

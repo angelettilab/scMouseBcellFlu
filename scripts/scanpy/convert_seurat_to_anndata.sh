@@ -4,7 +4,7 @@
 # AnnData object (.h5ad file) in the same directory
 
 # Specify paths
-main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
+main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/scMouseBcellFlu'
 seurat_object=$main'/analysis/06_cluster/seurat_object.rds'
 
 cd $main

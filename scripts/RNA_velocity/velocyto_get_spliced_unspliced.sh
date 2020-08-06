@@ -3,7 +3,7 @@
 ########################
 ### DEFINE VARIABLES ###
 ########################
-main='/home/jonrob/projects/d_angeletti_1910'
+main='/home/jonrob/projects/d_angeletti_1910/scMouseBcellFlu'
 data_path='/crex/proj/snic2019-8-255/private/jay/filezila/2019/10x_cellranger_26_apr'
 annot_path=$main/'data/rna_velocity/genome_annotation_files'
 

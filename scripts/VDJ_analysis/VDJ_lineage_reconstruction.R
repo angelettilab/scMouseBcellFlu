@@ -7,7 +7,7 @@ library(dplyr)
 
 
 # specify directory containing genotyped VDJ files
-proj_dir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/'
+proj_dir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/scMouseBcellFlu/'
 geno_dir <- paste0(proj_dir, 'analysis/immcantation/genotyping/')
 
 # get list of available files

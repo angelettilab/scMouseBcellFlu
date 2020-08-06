@@ -6,7 +6,7 @@
 ### DEFINE DIRECTORIES ###
 ##########################
 # specify main project directory
-main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
+main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/scMouseBcellFlu'
 
 
 ###########################

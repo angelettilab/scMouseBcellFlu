@@ -3,7 +3,7 @@
 ########################
 ### DEFINE VARIABLES ###
 ########################
-main='/home/jonrob/projects/d_angeletti_1910'
+main='/home/jonrob/projects/d_angeletti_1910/scMouseBcellFlu'
 # main='/cephyr/users/jonrob/Hebbe/projects/d_angeletti_1910'
 # main='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910'
 

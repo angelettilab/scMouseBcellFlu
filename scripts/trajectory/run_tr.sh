@@ -7,6 +7,6 @@
 #SBATCH --mail-type=END
 #SBATCH -o run_tr.log
 
-singularity run ~/projects/d_angeletti_1910/envs/trajectory/trajectory.sif bash ~/projects/d_angeletti_1910/scripts/run_trajectory.sh
+singularity run ~/projects/d_angeletti_1910/scMouseBcellFlu/envs/trajectory/trajectory.sif bash ~/projects/d_angeletti_1910/scMouseBcellFlu/scripts/run_trajectory.sh
 
 

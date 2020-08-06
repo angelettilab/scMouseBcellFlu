@@ -11,7 +11,7 @@ suppressMessages(suppressWarnings({
 }))
 
 # specify relevant directories
-pdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/'  # project directiory
+pdir <- '/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/scMouseBcellFlu/'  # project directiory
 adir <- paste0(pdir,'analysis/')  # analysis subdirectory
 
 
