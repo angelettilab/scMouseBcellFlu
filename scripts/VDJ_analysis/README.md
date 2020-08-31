@@ -25,7 +25,7 @@ main='/Users/your/path/here/d_angeletti_1910'
 
 ### Prepare environment
 
-Activate the **immcant-env** conda environment containing the packages necessary to run the pipeline. If the `immcant-env` conda environment has not been created, the conda environment `.yml` files are in the [`envs/`](../../envs) directory of this repository, and can be used to create the required conda environments (more details can be found within the [`envs/`]((../../envs) directory).
+Activate the **immcant-env** conda environment containing the packages necessary to run the pipeline. If the `immcant-env` conda environment has not been created, the conda environment `.yml` files are in the [`envs/`](../../envs) directory of this repository, and can be used to create the required conda environments (more details can be found within the [`envs/`](../../envs) directory).
 
 ```
 source activate immcant-env
