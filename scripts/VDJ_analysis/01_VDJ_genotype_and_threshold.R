@@ -8,7 +8,6 @@ suppressMessages(suppressWarnings(library(optparse)))
 cat("\nRunning GENOTYPE INFERENCE and NEAREST NEIGHBOR ANALYSIS with the following parameters ...\n")
 option_list = list(
   make_option(c("-i", "--VDJ_data_path"),       type = "character",   metavar="character",   default='none',    help="Path of the directory containing VDJ fasta files."),
-  make_option(c("-m", "--metadata_file"),       type = "character",   metavar="character",   default='none',    help="Filename (including path) of sample metadata.csv file."),
   make_option(c("-g", "--germline_path"),       type = "character",   metavar="character",   default='none',    help="Path of the directory containing IMGT germline data (should contain the 'imgt' folder)"),
   make_option(c("-d", "--density_method"),      type = "character",   metavar="character",   default='density', help="Method for finding the VDJ sequence hamming distance threshold defining distinct clones. Options are 'density', 'gmm', or 'none'. For 'gmm', one can also specify the model after a comma; e.g., 'gmm,gamma-gamma' (default), 'gmm,gamma-norm', 'gmm,norm-norm'."),
   make_option(c("-t", "--default_threshold"),   type = "character",   metavar="character",   default='0.1',     help="Default nearest neighbor hamming distance threshold to use if the threshold estimation fails or is not performed."),
@@ -34,76 +33,57 @@ suppressMessages(suppressWarnings(library(tigger)))
 #---------
 
 
-################################################
-### PREPARE DIRECTORIES AND COLLECT METADATA ###
-################################################
-
-# get list of all available samples
-samples <- list.dirs(opt$VDJ_data_path, full.names=F, recursive=F)
-
-# get sample metadata
-sample.meta <- read.csv(opt$metadata_file, stringsAsFactors=F)
-sample.meta <- sample.meta[match(samples, sample.meta$dataset), ]  # align to sample list
-rownames(sample.meta) <- seq(nrow(sample.meta))
-
-# create directories for results output
-genotype_dir <- paste0(opt$output_path,'/genotyping')
-threshold_dir <- paste0(opt$output_path,'/threshold_estimation')
-invisible( if (!dir.exists(genotype_dir)) {dir.create(genotype_dir, recursive=T)} )
-invisible( if (!dir.exists(threshold_dir)) {dir.create(threshold_dir, recursive=T)} )
-#---------
-
-
 #####################################################
 ### FIND NOVEL VDJ SEQ ALLELES AND INFER GENOTYPE ###
 #####################################################
 
+# get list of all available samples
+samples <- list.dirs(opt$VDJ_data_path, full.names=F, recursive=F)
+
 # load V-segment germline sequences
-ighv <- readIgFasta(paste0(opt$germline_path, '/imgt/mouse/vdj/imgt_mouse_IGHV.fasta'))
+ighv <- readIgFasta(file.path(opt$germline_path, 'imgt', 'mouse', 'vdj', 'imgt_mouse_IGHV.fasta'))
 
-# import ChangeO-formatted sequence database files (heavy chain)
+# import ChangeO-formatted sequence database files (heavy chain) and infer genotype for each sample individually
 seqdb <- NULL
-for (i in seq(length(samples))){
-  tmp <- readChangeoDb(file.path(opt$VDJ_data_path, samples[i], paste0(samples[i], '_heavy_parse-select.tab')))
-  tmp$SEQUENCE_ID <- paste0(tmp$SEQUENCE_ID, '-', samples[i])
-  tmp$MOUSE_NR <- sample.meta$mouse_nr[i]
-  seqdb <- rbind(seqdb, tmp)
-}
-
-# infer genotype (performed separately for each mouse)
-mice <- unique(seqdb$MOUSE_NR)
-mice <- mice[order(as.numeric(gsub('M','',mice)))]
-predicted_thresholds <- data.frame(mouse=mice, threshold=rep(as.numeric(opt$default_threshold), length(mice)))
-for (m in mice) {
+predicted_thresholds <- data.frame(sample=samples, threshold=rep(as.numeric(opt$default_threshold), length(samples)))
+for (s in samples) {
   
-  cat('\n\nPROCESSING MOUSE', m, '\n\n')
-  seqdb_mouse <- seqdb[seqdb$MOUSE_NR %in% m, ]
+  cat('\n\nPROCESSING SAMPLE:', s, '\n\n')
+  
+  # create directory for results output
+  sample_dir <- file.path(opt$output_path, s)
+  invisible( if (!dir.exists(sample_dir)) {dir.create(sample_dir, recursive=T)} )
+  
+  # load sample heavy chain sequence database
+  seqdb <- readChangeoDb(file.path(opt$VDJ_data_path, s, paste0(s, '_heavy_parse-select.tab')))
+  seqdb$SEQUENCE_ID <- paste0(seqdb$SEQUENCE_ID, '-', s)
   
   # find novel alleles (if any)
   cat('\tSearching for novel alleles ...\n')
+  nv <- NA
   novel_rows <- NULL
-  try (nv <- findNovelAlleles(seqdb_mouse, ighv))
+  try (nv <- findNovelAlleles(seqdb, ighv))
   try (novel_rows <- selectNovel(nv))
   
   # Extract and view the rows that contain successful novel allele calls
   if (!is.null(novel_rows) && (nrow(novel_rows) > 0)) {
-    png(filename=paste0(genotype_dir, '/novel_alleles_', m, '.png'), units='mm', height=250, width=180, res=300)
-    plotNovel(seqdb_mouse, novel_rows[1, ])  # only plot first novel allele
+    png(filename=file.path(sample_dir, 'novel_alleles.png'), units='mm', height=250, width=180, res=300)
+    plotNovel(seqdb, novel_rows[1, ])  # only plot first novel allele
     invisible(dev.off())
   }
   
-  # infer mouse genotype
-  gt_mouse <- inferGenotype(seqdb_mouse, germline_db=ighv, novel=nv)
-  png(filename=paste0(genotype_dir, '/IGHV_genotype_plot_', m, '.png'), units='mm', height=250, width=100, res=300)
-  plotGenotype(gt_mouse, gene_sort="position", text_size=8) #, facet_by='ALLELES')
+  # infer sample genotype
+  gt <- inferGenotype(seqdb, germline_db=ighv, novel=nv)
+  png(filename=file.path(sample_dir, 'IGHV_genotype_plot.png'), units='mm', height=250, width=100, res=300)
+  plotGenotype(gt, gene_sort="position", text_size=8) #, facet_by='ALLELES')
   invisible(dev.off())
   
   # convert genotype table to vector of nucleotide sequences
-  gtseq_mouse <- genotypeFasta(gt_mouse, germline_db=ighv, novel=nv)
-  writeFasta(gtseq_mouse, paste0(genotype_dir, '/IGHV_genotype_', m, '.fasta'))
+  gtseq <- genotypeFasta(gt, germline_db=ighv, novel=nv)
+  writeFasta(gtseq, file.path(sample_dir, 'IGHV_genotype.fasta'))
   
   # correct allele calls based on the personalized genotype
-  seqdb_mouse <- reassignAlleles(seqdb_mouse, gtseq_mouse)
+  seqdb <- reassignAlleles(seqdb, gtseq)
   #---------
   
   
@@ -112,10 +92,10 @@ for (m in mice) {
   ###################################
   
   # calculate distances to nearest neighbors
-  dist_ham <- distToNearest(seqdb_mouse, vCallColumn="V_CALL_GENOTYPED", model="ham", normalize="len", nproc=1)
+  dist_ham <- distToNearest(seqdb, vCallColumn="V_CALL_GENOTYPED", model="ham", normalize="len", nproc=1)
 
   # plot distance distribution
-  png(filename=paste0(threshold_dir, '/distToNearestNeighbor_', m, '.png'), units='mm', height=150, width=180, res=300)
+  png(filename=file.path(sample_dir, 'distToNearestNeighbor.png'), units='mm', height=150, width=180, res=300)
   print(ggplot(subset(dist_ham, !is.na(DIST_NEAREST)), aes(x=DIST_NEAREST)) +
           theme_bw() +
           xlab("Hamming distance") +
@@ -144,8 +124,8 @@ for (m in mice) {
       cat('\n\tThreshold estimation failed. Reverting to default threshold:', opt$default_threshold, '\n')
     } else {
       cat('\n\tEstimated hamming distance threshold:', round(output@threshold, 5), '\n')
-      predicted_thresholds$threshold[predicted_thresholds$mouse == m] <- output@threshold
-      png(paste0(threshold_dir, '/distToNearestNeighbor_', paste(dist_args, collapse='_'), '_fit_', m, '.png'), units='mm', height=120, width=150, res=300)
+      predicted_thresholds$threshold[predicted_thresholds$sample == s] <- output@threshold
+      png(file.path(sample_dir, paste0('distToNearestNeighbor_', paste(dist_args, collapse='_'), '_fit.png')), units='mm', height=120, width=150, res=300)
       plot(output, binwidth=0.02, title=paste0('Threshold Prediction [threshold = ', round(output@threshold, 3), ']'))
       invisible(dev.off())
     }
@@ -153,16 +133,13 @@ for (m in mice) {
   } else {
     stop(paste0('Invalid density_method: "', dist_args[1], '". Valid options are "density", "gmm", or "none".'))
   }
-  #---------
   
-  
-  ###########################
-  ### EXPORT DATA TO FILE ###
-  ###########################
-  writeChangeoDb(seqdb_mouse, paste0(genotype_dir, '/IGHV-genotyped_', m, '.tab'))
-  write.csv(predicted_thresholds, file=paste0(threshold_dir, '/predicted_thresholds.csv'), quote=F, row.names=F)
-  
+  # export data to file
+  writeChangeoDb(seqdb, file.path(sample_dir, 'IGHV-genotyped.tab'))
 }
+
+# export table of predicted thresholds
+write.csv(predicted_thresholds, file=file.path(opt$output_path, 'predicted_thresholds.csv'), quote=F, row.names=F)
 #---------
 
 
