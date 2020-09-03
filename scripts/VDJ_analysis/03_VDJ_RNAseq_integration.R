@@ -45,7 +45,7 @@ db <- read.delim(opt$changeo_db_path, stringsAsFactors=F)
 # get cell IDs in the same format as used in Seurat object
 cell_ids <- unlist(lapply(db$SEQUENCE_ID, function(x) paste(unlist(strsplit(x, '-'))[-2], collapse='_')))
 
-# remove duplicated cell IDs in ChangeO database (TODO: improve handling of duplicates!)
+# remove duplicated cell IDs in ChangeO database (should not be any duplicates)
 dup_ids <- cell_ids[duplicated(cell_ids)]
 db <- db[!duplicated(cell_ids), ]
 cell_ids <- cell_ids[!duplicated(cell_ids)]
