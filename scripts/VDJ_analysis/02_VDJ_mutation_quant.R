@@ -34,12 +34,12 @@ suppressMessages(suppressWarnings(library(ggplot2)))
 ### LOAD GERMLINE SEQ FILES ###
 ###############################
 
-# get list of available files and iterate through each file
-geno_files <- dir(opt$genotyped_path, 'germ-pass[.]tab', full.names=T)
+# get list of available germline files and iterate through each
+geno_files <- file.path(list.dirs(opt$genotyped_path, full.names=T, recursive=F), 'IGHLK-genotyped_germ-pass.tab')
 db_full <- NULL
 for (g_file in geno_files) {
 
-  cat('Processing file:', basename(g_file), '...\n')
+  cat('Processing sample:', basename(dirname(g_file)), '...\n')
   
   # load the Change-O database file with germline sequence information (*_germ-pass.tab file)
   db <- readChangeoDb(g_file)
