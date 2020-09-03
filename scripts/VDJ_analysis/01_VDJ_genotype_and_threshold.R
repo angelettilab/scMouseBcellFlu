@@ -16,8 +16,6 @@ option_list = list(
 opt = parse_args(OptionParser(option_list=option_list))
 print(t(t(unlist(opt))))
 
-# TODO: if some path(s) are not provided (i.e., option = 'none'), try to construct a default using relative paths.
-
 if (!dir.exists(opt$output_path)) { dir.create(opt$output_path, recursive=T) }
 setwd(opt$output_path)
 #---------
@@ -62,8 +60,8 @@ for (s in samples) {
   cat('\tSearching for novel alleles ...\n')
   nv <- NA
   novel_rows <- NULL
-  try (nv <- findNovelAlleles(seqdb, ighv))
-  try (novel_rows <- selectNovel(nv))
+  try (nv <- findNovelAlleles(seqdb, ighv), silent=T)
+  try (novel_rows <- selectNovel(nv), silent=T)
   
   # Extract and view the rows that contain successful novel allele calls
   if (!is.null(novel_rows) && (nrow(novel_rows) > 0)) {
