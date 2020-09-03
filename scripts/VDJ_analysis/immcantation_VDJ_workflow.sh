@@ -92,54 +92,58 @@ done
 ### INFER IG GENOTYPE AND ESTIMATE SEQ DIST THRESHOLD ###
 #########################################################
 # Run R-script to infer sequence genotype and estimate VDJ seq hamming distance threshold
-# Results are exported as "IGHV-genotyped_M#.tab", where "M#" is "M1", "M2", etc. for each mouse,
-# and a fasta file of the V-segment germline sequences: "IGHV_genotype_M#.fasta".
+# Results are exported into sample subfolders as "IGHV-genotyped.tab",
+# and a fasta file of the V-segment germline sequences: "IGHV_genotype.fasta".
 # A .csv file of estimated threshold values will also be written to the output directory.
 Rscript $main/scripts/VDJ_analysis/01_VDJ_genotype_and_threshold.R \
 --VDJ_data_path $main'/data/VDJ_OTUs' \
---metadata_file $main'/data/metadata.csv' \
 --germline_path $main'/data/immcantation/germlines' \
 --density_method 'density' \
 --default_threshold '0.1' \
---output_path $main'/analysis/immcantation'
+--output_path $main'/analysis/immcantation/clone_assignment'
 
 
 ############################################
 ### DEFINE CLONES AND GERMLINE SEQUENCES ###
 ############################################
-# extract mouse numbers and threshold values (columns 1 and 2, respectively) from predicted_thresholds.csv
-mouse_nums=(`awk -F "\"*,\"*" 'FNR > 1 {print $1}' $main/'analysis/immcantation/threshold_estimation/predicted_thresholds.csv'`)
-thresholds=(`awk -F "\"*,\"*" 'FNR > 1 {print $2}' $main/'analysis/immcantation/threshold_estimation/predicted_thresholds.csv'`)
+# extract sample names and threshold values (columns 1 and 2, respectively) from predicted_thresholds.csv
+samples=(`awk -F "\"*,\"*" 'FNR > 1 {print $1}' $main/'analysis/immcantation/clone_assignment/predicted_thresholds.csv'`)
+thresholds=(`awk -F "\"*,\"*" 'FNR > 1 {print $2}' $main/'analysis/immcantation/clone_assignment/predicted_thresholds.csv'`)
 
-# create sequence 0 to #mice
-indx=($(seq 0 $(( ${#mouse_nums[@]} - 1 )) ))
+# create sequence 0 to #samples
+indx=($(seq 0 $(( ${#samples[@]} - 1 )) ))
 
-# for mouse in ${mouse_nums[@]}
 for i in ${indx[@]}
 do
-    # Define clones (dist = distance threshold)
-    # Output file is named "IGHV-genotyped_M#_clone-pass.tab"
-    DefineClones.py -d $main'/analysis/immcantation/genotyping/IGHV-genotyped_'${mouse_nums[$i]}'.tab' \
+    # Define clones based on heavy chain (dist = distance threshold)
+    # Output file is named "IGHV-genotyped_clone-pass.tab"
+    DefineClones.py -d $main'/analysis/immcantation/clone_assignment/'${samples[$i]}'/IGHV-genotyped.tab' \
     --act set \
     --model ham \
     --norm len \
     --dist ${thresholds[$i]} \
     --format changeo \
-    --outname 'IGHV-genotyped_'${mouse_nums[$i]} \
-    --log $main'/analysis/immcantation/genotyping/IGHV-genotyped_'${mouse_nums[$i]}'_DefineClones.log'
+    --outname 'IGHV-genotyped' \
+    --log $main'/analysis/immcantation/clone_assignment/'${samples[$i]}'/IGHV-genotyped_DefineClones.log'
+
+    # Incorporate light chain information to update the clone assignments
+    light_cluster.py -d $main'/analysis/immcantation/clone_assignment/'${samples[$i]}'/IGHV-genotyped_clone-pass.tab' \
+    -e $main'/data/VDJ_OTUs/'${samples[$i]}'/'${samples[$i]}'_light_parse-select.tab' \
+    --format changeo \
+    -o $main'/analysis/immcantation/clone_assignment/'${samples[$i]}'/IGHLK-genotyped_clone-pass.tab'
 
     # Create germline sequences using genotyped sequences from TIgGER
-    # Output file is named "IGHV-genotyped_M#_germ-pass.tab"
-    CreateGermlines.py -d $main'/analysis/immcantation/genotyping/IGHV-genotyped_'${mouse_nums[$i]}'_clone-pass.tab' \
+    # Output file is named "IGHV-genotyped_germ-pass.tab"
+    CreateGermlines.py -d $main'/analysis/immcantation/clone_assignment/'${samples[$i]}'/IGHLK-genotyped_clone-pass.tab' \
     -g dmask \
     --cloned \
-    -r $main'/analysis/immcantation/genotyping/IGHV_genotype_'${mouse_nums[$i]}'.fasta' \
+    -r $main'/analysis/immcantation/clone_assignment/'${samples[$i]}'/IGHV_genotype.fasta' \
     $main/data/immcantation/germlines/imgt/mouse/vdj/imgt_mouse_IGHD.fasta \
     $main/data/immcantation/germlines/imgt/mouse/vdj/imgt_mouse_IGHJ.fasta \
     --vf V_CALL_GENOTYPED \
     --format changeo \
-    --outname 'IGHV-genotyped_'${mouse_nums[$i]} \
-    --log $main'/analysis/immcantation/genotyping/IGHV-genotyped_'${mouse_nums[$i]}'_CreateGermlines.log'
+    --outname 'IGHLK-genotyped' \
+    --log $main'/analysis/immcantation/clone_assignment/'${samples[$i]}'/IGHV-genotyped_CreateGermlines.log'
 done
 
 
@@ -149,7 +153,7 @@ done
 ####################################
 # exports results as ChangeO database file "VDJseq_mutation_quant.tab"
 Rscript $main/scripts/VDJ_analysis/02_VDJ_mutation_quant.R \
---genotyped_path $main'/analysis/immcantation/genotyping' \
+--genotyped_path $main'/analysis/immcantation/clone_assignment' \
 --output_path $main'/analysis/immcantation/mutation'
 
 
