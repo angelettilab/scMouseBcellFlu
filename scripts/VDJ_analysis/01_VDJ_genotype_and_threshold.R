@@ -38,56 +38,71 @@ suppressMessages(suppressWarnings(library(tigger)))
 # get list of all available samples
 samples <- list.dirs(opt$VDJ_data_path, full.names=F, recursive=F)
 
-# load V-segment germline sequences
-ighv <- readIgFasta(file.path(opt$germline_path, 'imgt', 'mouse', 'vdj', 'imgt_mouse_IGHV.fasta'))
-
 # import ChangeO-formatted sequence database files (heavy chain) and infer genotype for each sample individually
 seqdb <- NULL
+chains <- c('IGKL', 'IGH')
 predicted_thresholds <- data.frame(sample=samples, threshold=rep(as.numeric(opt$default_threshold), length(samples)))
 for (s in samples) {
-  
-  cat('\n\nPROCESSING SAMPLE:', s, '\n\n')
   
   # create directory for results output
   sample_dir <- file.path(opt$output_path, s)
   invisible( if (!dir.exists(sample_dir)) {dir.create(sample_dir, recursive=T)} )
   
-  # load sample heavy chain sequence database
-  seqdb <- readChangeoDb(file.path(opt$VDJ_data_path, s, paste0(s, '_heavy_parse-select.tab')))
-  seqdb$SEQUENCE_ID <- paste0(seqdb$SEQUENCE_ID, '-', s)
-  
-  # find novel alleles (if any)
-  cat('\tSearching for novel alleles ...\n')
-  nv <- NA
-  novel_rows <- NULL
-  try (nv <- findNovelAlleles(seqdb, ighv), silent=T)
-  try (novel_rows <- selectNovel(nv), silent=T)
-  
-  # Extract and view the rows that contain successful novel allele calls
-  if (!is.null(novel_rows) && (nrow(novel_rows) > 0)) {
-    png(filename=file.path(sample_dir, 'novel_alleles.png'), units='mm', height=250, width=180, res=300)
-    plotNovel(seqdb, novel_rows[1, ])  # only plot first novel allele
+  for (chain in chains) {
+    
+    cat('\n\nPROCESSING SAMPLE:', s, paste0('(', chain, ')'), '\n')
+    
+    # load sample chain sequence database and V-segment germline sequences
+    if (chain == 'IGH') {
+      igv <- readIgFasta(file.path(opt$germline_path, 'imgt', 'mouse', 'vdj', 'imgt_mouse_IGHV.fasta'))
+      seqdb <- readChangeoDb(file.path(opt$VDJ_data_path, s, paste0(s, '_heavy_parse-select.tab')))
+    } else if (chain == 'IGKL') {
+      igv_K <- readIgFasta(file.path(opt$germline_path, 'imgt', 'mouse', 'vdj', 'imgt_mouse_IGKV.fasta'))
+      igv_L <- readIgFasta(file.path(opt$germline_path, 'imgt', 'mouse', 'vdj', 'imgt_mouse_IGLV.fasta'))
+      igv <- c(igv_K, igv_L)
+      seqdb <- readChangeoDb(file.path(opt$VDJ_data_path, s, paste0(s, '_light_parse-select.tab')))
+    }
+    
+    # add sample name to sequence ID
+    seqdb$SEQUENCE_ID <- paste0(seqdb$SEQUENCE_ID, '-', s)
+    
+    # find novel alleles (if any)
+    cat('\tSearching for novel alleles ...\n')
+    nv <- NA
+    novel_rows <- NULL
+    try (nv <- findNovelAlleles(seqdb, igv), silent=T)
+    try (nv <- selectNovel(nv), silent=T)
+    
+    # Extract and view the rows that contain successful novel allele calls
+    if (!is.null(nv) && !is.na(nv) && (nrow(nv) > 0)) {
+      png(filename=file.path(sample_dir, paste0('novel_alleles_', chain, '.png')), units='mm', height=250, width=180, res=300)
+      plotNovel(seqdb, nv[1, ])  # only plot first novel allele
+      invisible(dev.off())
+    } else {
+      nv <- NA
+    }
+    
+    # infer sample genotype
+    gt <- inferGenotype(seqdb, germline_db=igv, novel=nv)
+    png(filename=file.path(sample_dir, paste0(chain, 'V_genotype_plot.png')), units='mm', height=250, width=100, res=300)
+    plotGenotype(gt, gene_sort="position", text_size=8) #, facet_by='ALLELES')
     invisible(dev.off())
+    
+    # convert genotype table to vector of nucleotide sequences
+    gtseq <- genotypeFasta(gt, germline_db=igv, novel=nv)
+    writeFasta(gtseq, file.path(sample_dir, paste0(chain, 'V_genotype.fasta')))
+    
+    # correct allele calls based on the personalized genotype and export
+    seqdb <- reassignAlleles(seqdb, gtseq)
+    writeChangeoDb(seqdb, file.path(sample_dir, paste0(chain, '_genotyped.tab')))
   }
-  
-  # infer sample genotype
-  gt <- inferGenotype(seqdb, germline_db=ighv, novel=nv)
-  png(filename=file.path(sample_dir, 'IGHV_genotype_plot.png'), units='mm', height=250, width=100, res=300)
-  plotGenotype(gt, gene_sort="position", text_size=8) #, facet_by='ALLELES')
-  invisible(dev.off())
-  
-  # convert genotype table to vector of nucleotide sequences
-  gtseq <- genotypeFasta(gt, germline_db=ighv, novel=nv)
-  writeFasta(gtseq, file.path(sample_dir, 'IGHV_genotype.fasta'))
-  
-  # correct allele calls based on the personalized genotype
-  seqdb <- reassignAlleles(seqdb, gtseq)
   #---------
-  
   
   ###################################
   ### CALCULATE NEAREST NEIGHBORS ###
   ###################################
+  # NOTE! Nearest neighbor calculations must be done only on heavy chain
+  if (chain == 'IGKL') { stop('distToNearest function should not be used on light chain segment!') }
   
   # calculate distances to nearest neighbors
   dist_ham <- distToNearest(seqdb, vCallColumn="V_CALL_GENOTYPED", model="ham", normalize="len", nproc=1)
@@ -131,9 +146,7 @@ for (s in samples) {
   } else {
     stop(paste0('Invalid density_method: "', dist_args[1], '". Valid options are "density", "gmm", or "none".'))
   }
-  
-  # export data to file
-  writeChangeoDb(seqdb, file.path(sample_dir, 'IGHV-genotyped.tab'))
+
 }
 
 # export table of predicted thresholds
