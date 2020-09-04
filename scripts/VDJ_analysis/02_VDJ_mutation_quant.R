@@ -7,8 +7,9 @@ suppressMessages(suppressWarnings(library(optparse)))
 ##################################
 cat("\nRunning VDJ MUTATION QUANTIFICATION with the following parameters ...\n")
 option_list = list(
-  make_option(c("-i", "--genotyped_path"),      type = "character",   metavar="character",   default='none',    help="Path of the directory containing the output genotype (*_germ-pass.tab) files generated using the ChangeO CreateGermlines function."),
-  make_option(c("-o", "--output_path"),         type = "character",   metavar="character",   default='none',    help="Output directory.")
+  make_option(c("-i", "--genotyped_path"),  type = "character",   metavar="character",   default='none',    help="Path of the directory containing the output genotype (*_germ-pass.tab) files generated using the ChangeO CreateGermlines function."),
+  make_option(c("-c", "--chain"),           type = "character",   metavar="character",   default='none',    help="BCR IG chain type, valid options are 'heavy' (IGH) or 'light' (IGK and IGL)."),
+  make_option(c("-o", "--output_path"),     type = "character",   metavar="character",   default='none',    help="Output directory.")
 )
 opt = parse_args(OptionParser(option_list=option_list))
 print(t(t(unlist(opt))))
@@ -34,15 +35,23 @@ suppressMessages(suppressWarnings(library(ggplot2)))
 ### LOAD GERMLINE SEQ FILES ###
 ###############################
 
-# get list of available germline files and iterate through each
-geno_files <- file.path(list.dirs(opt$genotyped_path, full.names=T, recursive=F), 'IGHLK-genotyped_germ-pass.tab')
-db_full <- NULL
-for (g_file in geno_files) {
+if (casefold(opt$chain) == 'heavy') {
+  chain_name <- 'IGH'
+} else if (casefold(opt$chain) == 'light') {
+  chain_name <- 'IGKL'
+} else {
+  stop('Invalid input for "chain". Valid options are "heavy" or "light".')
+}
 
-  cat('Processing sample:', basename(dirname(g_file)), '...\n')
+# get list of available chain seq db files and iterate through each
+seq_files <- file.path(list.dirs(opt$genotyped_path, full.names=T, recursive=F), paste0(chain_name, '_genotyped_germ-pass.tab'))
+db_full <- NULL
+for (s_file in seq_files) {
+
+  cat('Processing sample:', basename(dirname(s_file)), '...\n')
   
   # load the Change-O database file with germline sequence information (*_germ-pass.tab file)
-  db <- readChangeoDb(g_file)
+  db <- readChangeoDb(s_file)
   
   # calculate mutation counts and frequencies
   # mutaion counts per individual regions
@@ -65,12 +74,6 @@ for (g_file in geno_files) {
   organ_day <- unlist(lapply(db$SEQUENCE_ID, function(x) tail(unlist(strsplit(x, '-|_')), 2)[1]))
   db$ORGAN <- gsub('\\d+', '', organ_day)
   db$DAY_POST_INFECTION <- gsub('[a-z]+', '', organ_day)  # each mouse only has one day
-  
-  # plot differences in mutation frequency between organs
-  # ggplot(db, aes(x=ORGAN, y=MU_FREQ, fill=ORGAN)) +
-  #   theme_bw() + ggtitle("Mutation quantification") +
-  #   xlab("Organ") + ylab("Mutation frequency") +
-  #   geom_boxplot()
 
   # combine data with full database
   if (is.null(db_full)) {
@@ -82,7 +85,7 @@ for (g_file in geno_files) {
 }
 
 # write the merged ChangeO database containing mutation data to a file
-out_file <- 'VDJseq_mutation_quant.tab'
+out_file <- paste0(chain_name, '_mutation_quant.tab')
 cat('\nWriting merged ChangeO database file:', out_file, '...\n')
 if (!dir.exists(opt$output_path)) { dir.create(opt$output_path, recursive=T) }
 writeChangeoDb(db_full, file.path(opt$output_path, out_file))
