@@ -5,10 +5,10 @@ suppressMessages(suppressWarnings(library(optparse)))
 ##################################
 ### DEFINE PATH TO LOCAL FILES ###
 ##################################
-cat("\nRunning GENOTYPE INFERENCE and NEAREST NEIGHBOR ANALYSIS with the following parameters ...\n")
+cat("\nRunning NEAREST NEIGHBOR ANALYSIS with the following parameters ...\n")
 option_list = list(
   make_option(c("-i", "--VDJ_data_path"),       type = "character",   metavar="character",   default='none',    help="Path of the directory containing VDJ fasta files."),
-  make_option(c("-g", "--germline_path"),       type = "character",   metavar="character",   default='none',    help="Path of the directory containing IMGT germline data (should contain the 'imgt' folder)"),
+  make_option(c("-m", "--metadata_file"),       type = "character",   metavar="character",   default='none',    help="Filename (including path) of sample metadata.csv file."),
   make_option(c("-d", "--density_method"),      type = "character",   metavar="character",   default='density', help="Method for finding the VDJ sequence hamming distance threshold defining distinct clones. Options are 'density', 'gmm', or 'none'. For 'gmm', one can also specify the model after a comma; e.g., 'gmm,gamma-gamma' (default), 'gmm,gamma-norm', 'gmm,norm-norm'."),
   make_option(c("-t", "--default_threshold"),   type = "character",   metavar="character",   default='0.1',     help="Default nearest neighbor hamming distance threshold to use if the threshold estimation fails or is not performed."),
   make_option(c("-o", "--output_path"),         type = "character",   metavar="character",   default='none',    help="Output directory.")
@@ -31,84 +31,77 @@ suppressMessages(suppressWarnings(library(tigger)))
 #---------
 
 
-#####################################################
-### FIND NOVEL VDJ SEQ ALLELES AND INFER GENOTYPE ###
-#####################################################
-
+################################################
+### PREPARE DIRECTORIES AND COLLECT METADATA ###
+################################################
 # get list of all available samples
 samples <- list.dirs(opt$VDJ_data_path, full.names=F, recursive=F)
 
-# import ChangeO-formatted sequence database files (heavy chain) and infer genotype for each sample individually
-seqdb <- NULL
-chains <- c('IGKL', 'IGH')
-predicted_thresholds <- data.frame(sample=samples, threshold=rep(as.numeric(opt$default_threshold), length(samples)))
-for (s in samples) {
+# get sample metadata
+sample.meta <- read.csv(opt$metadata_file, stringsAsFactors=F)
+sample.meta <- sample.meta[match(samples, sample.meta$dataset), ]  # align to sample list
+rownames(sample.meta) <- seq(nrow(sample.meta))
+
+# create directory for results output
+invisible( if (!dir.exists(opt$output_path)) {dir.create(opt$output_path, recursive=T)} )
+#---------
+
+
+##########################################
+### LOAD AND PREPARE SEQUENCE DB FILES ###
+##########################################
+# import ChangeO-formatted sequence database files
+seqdb_heavy <- seqdb_light <- NULL
+for (i in seq(length(samples))){
+  # The sample name is appended to the SEQUENCE_ID and CELL identifiers to ensure
+  # that there is no accidental overlap between samples.
   
-  # create directory for results output
-  sample_dir <- file.path(opt$output_path, s)
-  invisible( if (!dir.exists(sample_dir)) {dir.create(sample_dir, recursive=T)} )
+  # heavy chain (IGH)
+  tmp_heavy <- readChangeoDb(file.path(opt$VDJ_data_path, samples[i], paste0(samples[i], '_heavy_parse-select.tab')))
+  tmp_heavy$SEQUENCE_ID <- paste0(tmp_heavy$SEQUENCE_ID, '-', samples[i])
+  tmp_heavy$CELL <- paste(unlist(lapply(tmp_heavy$CELL, function(x) unlist(strsplit(x, '-'))[-2])), samples[i], sep='_')
+  tmp_heavy$MOUSE_NR <- sample.meta$mouse_nr[i]
   
-  for (chain in chains) {
-    
-    cat('\n\nPROCESSING SAMPLE:', s, paste0('(', chain, ')'), '\n')
-    
-    # load sample chain sequence database and V-segment germline sequences
-    if (chain == 'IGH') {
-      igv <- readIgFasta(file.path(opt$germline_path, 'imgt', 'mouse', 'vdj', 'imgt_mouse_IGHV.fasta'))
-      seqdb <- readChangeoDb(file.path(opt$VDJ_data_path, s, paste0(s, '_heavy_parse-select.tab')))
-    } else if (chain == 'IGKL') {
-      igv_K <- readIgFasta(file.path(opt$germline_path, 'imgt', 'mouse', 'vdj', 'imgt_mouse_IGKV.fasta'))
-      igv_L <- readIgFasta(file.path(opt$germline_path, 'imgt', 'mouse', 'vdj', 'imgt_mouse_IGLV.fasta'))
-      igv <- c(igv_K, igv_L)
-      seqdb <- readChangeoDb(file.path(opt$VDJ_data_path, s, paste0(s, '_light_parse-select.tab')))
-    }
-    
-    # add sample name to sequence ID
-    seqdb$SEQUENCE_ID <- paste0(seqdb$SEQUENCE_ID, '-', s)
-    
-    # find novel alleles (if any)
-    cat('\tSearching for novel alleles ...\n')
-    nv <- NA
-    novel_rows <- NULL
-    try (nv <- findNovelAlleles(seqdb, igv), silent=T)
-    try (nv <- selectNovel(nv), silent=T)
-    
-    # Extract and view the rows that contain successful novel allele calls
-    if (!is.null(nv) && !is.na(nv) && (nrow(nv) > 0)) {
-      png(filename=file.path(sample_dir, paste0('novel_alleles_', chain, '.png')), units='mm', height=250, width=180, res=300)
-      plotNovel(seqdb, nv[1, ])  # only plot first novel allele
-      invisible(dev.off())
-    } else {
-      nv <- NA
-    }
-    
-    # infer sample genotype
-    gt <- inferGenotype(seqdb, germline_db=igv, novel=nv)
-    png(filename=file.path(sample_dir, paste0(chain, 'V_genotype_plot.png')), units='mm', height=250, width=100, res=300)
-    plotGenotype(gt, gene_sort="position", text_size=8) #, facet_by='ALLELES')
-    invisible(dev.off())
-    
-    # convert genotype table to vector of nucleotide sequences
-    gtseq <- genotypeFasta(gt, germline_db=igv, novel=nv)
-    writeFasta(gtseq, file.path(sample_dir, paste0(chain, 'V_genotype.fasta')))
-    
-    # correct allele calls based on the personalized genotype and export
-    seqdb <- reassignAlleles(seqdb, gtseq)
-    writeChangeoDb(seqdb, file.path(sample_dir, paste0(chain, '_genotyped.tab')))
-  }
-  #---------
+  # remove cells from DB if they contain multiple heavy chains
+  dup_cells <- tmp_heavy$CELL[duplicated(tmp_heavy$CELL)]
+  tmp_heavy <- tmp_heavy[!(tmp_heavy$CELL %in% dup_cells), ]
+  seqdb_heavy <- rbind(seqdb_heavy, tmp_heavy)
   
-  ###################################
-  ### CALCULATE NEAREST NEIGHBORS ###
-  ###################################
-  # NOTE! Nearest neighbor calculations must be done only on heavy chain
-  if (chain == 'IGKL') { stop('distToNearest function should not be used on light chain segment!') }
+  # light chain (IGK and IGL)
+  tmp_light <- readChangeoDb(file.path(opt$VDJ_data_path, samples[i], paste0(samples[i], '_light_parse-select.tab')))
+  tmp_light$SEQUENCE_ID <- paste0(tmp_light$SEQUENCE_ID, '-', samples[i])
+  tmp_light$CELL <- paste(unlist(lapply(tmp_light$CELL, function(x) unlist(strsplit(x, '-'))[-2])), samples[i], sep='_')
+  tmp_light$MOUSE_NR <- sample.meta$mouse_nr[i]
+  seqdb_light <- rbind(seqdb_light, tmp_light)
+}
+#---------
+
+
+###################################
+### CALCULATE NEAREST NEIGHBORS ###
+###################################
+mice <- unique(sample.meta$mouse_nr)
+mice <- mice[order(as.numeric(gsub('M','',mice)))]
+predicted_thresholds <- data.frame(mouse=mice, threshold=rep(as.numeric(opt$default_threshold), length(mice)))
+for (m in mice) {
   
+  cat('\nPROCESSING MOUSE:', m, '\n')
+  mouse_path <- file.path(opt$output_path, m)
+  invisible( if (!dir.exists(mouse_path)) {dir.create(mouse_path, recursive=T)} )
+  seqdb_heavy_mouse <- seqdb_heavy[seqdb_heavy$MOUSE_NR %in% m, ]
+  seqdb_light_mouse <- seqdb_light[seqdb_light$MOUSE_NR %in% m, ]
+  
+  # export combined sequence DB for mouse
+  writeChangeoDb(seqdb_heavy_mouse, file.path(mouse_path, 'seqdb_heavy.tab'))
+  writeChangeoDb(seqdb_light_mouse, file.path(mouse_path, 'seqdb_light.tab'))
+
   # calculate distances to nearest neighbors
-  dist_ham <- distToNearest(seqdb, vCallColumn="V_CALL_GENOTYPED", model="ham", normalize="len", nproc=1)
+  seqdb_mouse <- rbind(seqdb_heavy_mouse, seqdb_light_mouse)
+  dist_ham <- distToNearest(seqdb_mouse, vCallColumn='V_CALL', model='ham', normalize='len', nproc=1,
+                            cellIdColumn='CELL', locusColumn='LOCUS', groupUsingOnlyIGH=F)
 
   # plot distance distribution
-  png(filename=file.path(sample_dir, 'distToNearestNeighbor.png'), units='mm', height=150, width=180, res=300)
+  png(filename=file.path(mouse_path, 'distToNearestNeighbor.png'), units='mm', height=150, width=180, res=300)
   print(ggplot(subset(dist_ham, !is.na(DIST_NEAREST)), aes(x=DIST_NEAREST)) +
           theme_bw() +
           xlab("Hamming distance") +
@@ -121,7 +114,7 @@ for (s in samples) {
   dist_args <- trimws(unlist(strsplit(casefold(opt$density_method), ',')))
   if (dist_args[1] == 'none') {
     
-    cat('\n\tSkipping automatic threshold estimation. Threshold value set to default:', opt$default_threshold, '\n')
+    cat('\tSkipping automatic threshold estimation. Threshold value set to default:', opt$default_threshold, '\n')
     
   } else if (dist_args[1] %in% c('density','gmm')) {
     
@@ -134,11 +127,11 @@ for (s in samples) {
     }
     
     if (is.null(output) || is.na(output@threshold)) {  
-      cat('\n\tThreshold estimation failed. Reverting to default threshold:', opt$default_threshold, '\n')
+      cat('\tThreshold estimation failed. Reverting to default threshold:', opt$default_threshold, '\n')
     } else {
-      cat('\n\tEstimated hamming distance threshold:', round(output@threshold, 5), '\n')
-      predicted_thresholds$threshold[predicted_thresholds$sample == s] <- output@threshold
-      png(file.path(sample_dir, paste0('distToNearestNeighbor_', paste(dist_args, collapse='_'), '_fit.png')), units='mm', height=120, width=150, res=300)
+      cat('\tEstimated hamming distance threshold:', round(output@threshold, 5), '\n')
+      predicted_thresholds$threshold[predicted_thresholds$mouse == m] <- output@threshold
+      png(file.path(mouse_path, paste0('distToNearestNeighbor_', paste(dist_args, collapse='_'), '_fit.png')), units='mm', height=120, width=150, res=300)
       plot(output, binwidth=0.02, title=paste0('Threshold Prediction [threshold = ', round(output@threshold, 3), ']'))
       invisible(dev.off())
     }
@@ -162,7 +155,6 @@ Sys.info()
 cat('\n\n\n\n')
 sessionInfo()
 #---------
-
 
 
 
