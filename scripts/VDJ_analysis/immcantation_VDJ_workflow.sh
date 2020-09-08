@@ -163,13 +163,13 @@ done
 ####################################
 # heavy chain: exports results as ChangeO database file "seqdb_heavy_mutation_quant.tab"
 Rscript $main/scripts/VDJ_analysis/02_VDJ_mutation_quant.R \
---genotyped_path $main'/analysis/immcantation/clone_assignment' \
+--changeo_db_path $main'/analysis/immcantation/clone_assignment' \
 --chain 'heavy' \
 --output_path $main'/analysis/immcantation/mutation'
 
 # light chain: exports results as ChangeO database file "seqdb_light_mutation_quant.tab"
 Rscript $main/scripts/VDJ_analysis/02_VDJ_mutation_quant.R \
---genotyped_path $main'/analysis/immcantation/clone_assignment' \
+--changeo_db_path $main'/analysis/immcantation/clone_assignment' \
 --chain 'light' \
 --output_path $main'/analysis/immcantation/mutation'
 
