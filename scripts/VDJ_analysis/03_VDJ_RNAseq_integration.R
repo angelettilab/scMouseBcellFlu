@@ -8,16 +8,12 @@ suppressMessages(suppressWarnings(library(optparse)))
 cat("\nRunning VDJ INTEGRATION WITH RNA-SEQ DATA OBJECT with the following parameters ...\n")
 option_list = list(
   make_option(c("-i", "--Seurat_object_path"),  type = "character",   metavar="character",   default='none',  help="Path to the Seurat object."),
-  make_option(c("-c", "--changeo_db_path"),  type = "character",   metavar="character",   default='none',  help="Path to the ChangeO database file(s) (.tab) containing VDJ clonotype and mutation data."),
+  make_option(c("-d", "--changeo_db_path"),  type = "character",   metavar="character",   default='none',  help="Path to the ChangeO database file(s) (.tab) containing VDJ clonotype and mutation data."),
   make_option(c("-o", "--output_path"),         type = "character",   metavar="character",   default='none',  help="Output directory with optional filename (ending in '.rds'). If a filename is not provided, the output Seurat object will be named the same as the input object, but appended with _VDJannot.rds. If the path is not specified, the output directory will be the same as the directory containing the input Seurat object.")
 )
 opt = parse_args(OptionParser(option_list=option_list))
 print(t(t(unlist(opt))))
 #---------
-
-# opt <- list(Seurat_object_path='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/scMouseBcellFlu/analysis/06_cluster/seurat_object.rds',
-#             changeo_db_path='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/scMouseBcellFlu/analysis/immcantation/mutation2',
-#             output_path='/Users/jonrob/Documents/NBIS/LTS_projects/d_angeletti_1910/scMouseBcellFlu/analysis/immcantation/seurat_object_VDJannot.rds')
 
 
 ##############################
@@ -42,13 +38,13 @@ DATA <- readRDS(opt$Seurat_object_path)
 #############################################
 ### SPECIFY MUTATION DATA FILENAMES/PATHS ###
 #############################################
-mut_files <- list.files(opt$changeo_db_path, pattern='mutation_quant.tab')
-heavy_file <- mut_files[startsWith(casefold(mut_files), 'igh')]
-light_file <- mut_files[startsWith(casefold(mut_files), 'igkl')]
+mut_files <- list.files(opt$changeo_db_path, pattern='mutation_quant')
+heavy_file <- mut_files[grepl('heavychain', casefold(mut_files))]
+light_file <- mut_files[grepl('lightchain', casefold(mut_files))]
 
 if (length(heavy_file) == 0) {
   stop(paste('No heavy chain Change-O DB file found in changeo_db_path.\n',
-             'The path must contain a seq db file named "IGH_mutation_quant.tab".'))
+             'The path must contain a seq db file named "mutation_quant_heavychain.tab".'))
 }
 #---------
 
@@ -79,7 +75,6 @@ rownames(db_heavy) <- cell_ids_heavy
 # prefix all heavy chain data columns with HC (Heavy Chain)
 colnames(db_heavy) <- paste0('HC_', colnames(db_heavy))
 #---------
-
 
 
 ################################
