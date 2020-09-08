@@ -7,7 +7,7 @@ suppressMessages(suppressWarnings(library(optparse)))
 ##################################
 cat("\nRunning VDJ MUTATION QUANTIFICATION with the following parameters ...\n")
 option_list = list(
-  make_option(c("-i", "--genotyped_path"),  type = "character",   metavar="character",   default='none',    help="Path of the directory containing the output genotype (*_germ-pass.tab) files generated using the ChangeO CreateGermlines function."),
+  make_option(c("-d", "--changeo_db_path"), type = "character",   metavar="character",   default='none',    help="Path of the directory containing the mouse-specific folders which themselves contain Change-O seq db files."),
   make_option(c("-c", "--chain"),           type = "character",   metavar="character",   default='none',    help="BCR IG chain type, valid options are 'heavy' (IGH) or 'light' (IGK and IGL)."),
   make_option(c("-o", "--output_path"),     type = "character",   metavar="character",   default='none',    help="Output directory.")
 )
@@ -34,21 +34,12 @@ suppressMessages(suppressWarnings(library(ggplot2)))
 ###############################
 ### LOAD GERMLINE SEQ FILES ###
 ###############################
-
-if (casefold(opt$chain) == 'heavy') {
-  chain_name <- 'IGH'
-} else if (casefold(opt$chain) == 'light') {
-  chain_name <- 'IGKL'
-} else {
-  stop('Invalid input for "chain". Valid options are "heavy" or "light".')
-}
-
 # get list of available chain seq db files and iterate through each
-seq_files <- file.path(list.dirs(opt$genotyped_path, full.names=T, recursive=F), paste0(chain_name, '_genotyped_germ-pass.tab'))
+seq_files <- file.path(list.dirs(opt$changeo_db_path, full.names=T, recursive=F), paste0('seqdb_', opt$chain, '_germ-pass.tab'))
 db_full <- NULL
 for (s_file in seq_files) {
 
-  cat('Processing sample:', basename(dirname(s_file)), '...\n')
+  cat('Processing mouse:', basename(dirname(s_file)), '...\n')
   
   # load the Change-O database file with germline sequence information (*_germ-pass.tab file)
   db <- readChangeoDb(s_file)
@@ -85,7 +76,7 @@ for (s_file in seq_files) {
 }
 
 # write the merged ChangeO database containing mutation data to a file
-out_file <- paste0(chain_name, '_mutation_quant.tab')
+out_file <- paste0('mutation_quant_', opt$chain, 'chain.tab')
 cat('\nWriting merged ChangeO database file:', out_file, '...\n')
 if (!dir.exists(opt$output_path)) { dir.create(opt$output_path, recursive=T) }
 writeChangeoDb(db_full, file.path(opt$output_path, out_file))
