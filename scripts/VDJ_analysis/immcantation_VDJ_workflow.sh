@@ -161,13 +161,13 @@ done
 ####################################
 ### QUANTIFY VDJ MUTATION BURDEN ###
 ####################################
-# heavy chain: exports results as ChangeO database file "seqdb_heavy_mutation_quant.tab"
+# heavy chain: exports results as ChangeO database file "mutation_quant_heavychain.tab"
 Rscript $main/scripts/VDJ_analysis/02_VDJ_mutation_quant.R \
 --changeo_db_path $main'/analysis/immcantation/clone_assignment' \
 --chain 'heavy' \
 --output_path $main'/analysis/immcantation/mutation'
 
-# light chain: exports results as ChangeO database file "seqdb_light_mutation_quant.tab"
+# light chain: exports results as ChangeO database file "mutation_quant_lightchain.tab"
 Rscript $main/scripts/VDJ_analysis/02_VDJ_mutation_quant.R \
 --changeo_db_path $main'/analysis/immcantation/clone_assignment' \
 --chain 'light' \
