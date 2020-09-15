@@ -94,7 +94,7 @@ done
 # Run R-script to group seq data by mouse and estimate heavy chain hamming distance threshold.
 # Seq files are exported to mouse-specific subfolders as "seqdb_heavy.tab" and "seqdb_light.tab".
 # A predicted_thresholds.csv file of threshold values for each mouse is also generated.
-Rscript $main/scripts/VDJ_analysis/01_VDJ_genotype_and_threshold.R \
+Rscript $main/scripts/VDJ_analysis/01_VDJ_group_mice_and_threshold.R \
 --VDJ_data_path $main'/data/VDJ_OTUs' \
 --metadata_file $main'/data/metadata.csv' \
 --density_method 'density' \
