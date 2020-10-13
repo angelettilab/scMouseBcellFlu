@@ -24,7 +24,7 @@ Note that there is a `metadata.csv` file in the [`data/`](../../data) directory 
 | spleen14_3 | rna | v2 | M3 | infected | D14 | spleen | spleen14 |
 | ... | ... | ... | ... | ... | ... | ... | ... |
 
-If a different dataset is to be used, this `metadata.csv` file will need to be updated accordingly. It is important that the `dataset` column is present and the entries match the names of the folders in the [`data/VDJ_OTUs/`](../../data/VDJ_OTUs) directory. Also, the `mouse_nr` column must be present in order to combine datasets based on subject (mouse) when performing the clone assignment.
+If a different dataset is to be used, this `metadata.csv` file will need to be updated accordingly. It is important that the **`dataset`** column is present and the entries match the names of the folders in the [`data/VDJ_OTUs/`](../../data/VDJ_OTUs) directory. Also, the **`mouse_nr`** column must be present in order to combine datasets based on subject (mouse) when performing the clone assignment.
 
 The following sections describe each step of the VDJ workflow included in the `immcantation_VDJ_workflow.sh` bash script.
 
