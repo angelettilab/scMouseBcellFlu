@@ -11,6 +11,21 @@ cd scripts/VDJ_analysis/
 bash immcantation_VDJ_workflow.sh
 ```
 
+Note that there is a `metadata.csv` file in the [`data/`](../../data) directory of the repository which contains information about each of the samples to be processed. For example:
+
+| dataset | assay | chemistry | mouse_nr | infection | day_post_infection | organ | organ_day |
+| ------- | ----- | --------- | -------- | --------- | ------------------ | ----- |---------- |
+| spleen0_1 | rna | v2 | M7 | naive | D0 | spleen | spleen0 |
+| spleen0_2 | rna | v2 | M8 | naive | D0 | spleen | spleen0 |
+| spleen7_1 | rna | v2 | M9 | infected | D7 | spleen | spleen7 |
+| spleen7_2 | rna | v2 | M10 | infected | D7 | spleen | spleen7 |
+| spleen14_1 | rna | v2 | M1 | infected | D14 | spleen | spleen14 |
+| spleen14_2 | rna | v2 | M2 | infected | D14 | spleen | spleen14 |
+| spleen14_3 | rna | v2 | M3 | infected | D14 | spleen | spleen14 |
+| ... | ... | ... | ... | ... | ... | ... | ... |
+
+If a different dataset is to be used, this `metadata.csv` file will need to be updated accordingly. It is important that the `dataset` column is present and the entries match the names of the folders in the [`data/VDJ_OTUs/`](../../data/VDJ_OTUs) directory. Also, the `mouse_nr` column must be present in order to combine datasets based on subject (mouse) when performing the clone assignment.
+
 The following sections describe each step of the VDJ workflow included in the `immcantation_VDJ_workflow.sh` bash script.
 
 

@@ -95,6 +95,10 @@ done
 # Results are exported as "IGHV-genotyped_M#.tab", where "M#" is "M1", "M2", etc. for each mouse,
 # and a fasta file of the V-segment germline sequences: "IGHV_genotype_M#.fasta".
 # A .csv file of estimated threshold values will also be written to the output directory.
+
+# The metadata.csv file should contain metadata about each of the BCR sequencing sample files;
+# for an example of how the metadata file should be formatted, see the example metadata.csv
+# file in the data/ subdirectory of the repository.
 Rscript $main/scripts/VDJ_analysis/01_VDJ_genotype_and_threshold.R \
 --VDJ_data_path $main'/data/VDJ_OTUs' \
 --metadata_file $main'/data/metadata.csv' \
