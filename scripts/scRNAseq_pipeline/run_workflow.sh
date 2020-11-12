@@ -9,7 +9,7 @@ main='/home/jonrob/projects/d_angeletti_1910/scMouseBcellFlu'
 script_path='/home/jonrob/repos/sauron/scripts'
 
 cd $main
-# mkdir analysis
+mkdir analysis
 
 
 ##################################
