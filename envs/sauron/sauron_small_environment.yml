@@ -1,0 +1,28 @@
+name: Sauron.small
+channels:
+ - conda-forge
+ - bioconda
+ - defaults
+ - anaconda
+dependencies:
+ - r-base=3.5
+ - rstudio=1.1.456
+ - bioconductor-biomart=2.38
+ - bioconductor-sva=3.30
+ - r-devtools=2.1.0
+ - r-biocmanager=1.30
+ - r-data.table=1.11
+ - r-dbscan=1.1
+ - r-dplyr=0.8
+ - r-fields=9.6
+ - r-igraph=1.2
+ - r-ineq=0.2
+ - r-optparse=1.6
+ - r-rafalib=1.0
+ - r-rcolorbrewer=1.1
+ - r-scales=1.0
+ - r-seurat=3.0.1
+ - r-vegan=2.5
+ - r-hdf5r=1.2.0
+ - r-umap=0.2
+ 
