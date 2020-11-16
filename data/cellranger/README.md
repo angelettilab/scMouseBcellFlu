@@ -1,6 +1,6 @@
 # scRNA-seq Cellranger output files
 
-This directory should contain a folder for each sample (e.g., `lung0_2/`, `lung7_1`, `mln7_2`, consistent with the sample naming in the `metadata.csv` file in the parent `data/` directory), with each folder containing the following outputs from the cellranger pipeline: `barcodes.tsv`, `genes.tsv`, `matrix.mtx`.
+This directory should contain a folder for each sample (e.g., `lung0_2`, `lung7_1`, `mln7_2`, consistent with the sample naming in the `metadata.csv` file in the parent `data/` directory), with each folder containing the following outputs from the cellranger pipeline: `barcodes.tsv`, `genes.tsv`, `matrix.mtx`.
 
 The directory contents should be organized as follows:
 

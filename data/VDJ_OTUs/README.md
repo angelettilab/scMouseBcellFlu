@@ -1,6 +1,6 @@
 # B-cell receptor repertoire sequencing data
 
-This directory should contain a folder for each sample (e.g., `lung0_2/`, `lung7_1`, `mln7_2`, consistent with the sample naming in the `metadata.csv` file in the parent `data/` directory), with each folder containing the B-cell receptor sequencing annotation file from Cellranger (`filtered_contig_annotations_[SAMPLE].csv`) and the associated FASTA file (`filtered_contig_[SAMPLE].fasta`).
+This directory should contain a folder for each sample (e.g., `lung0_2`, `lung7_1`, `mln7_2`, consistent with the sample naming in the `metadata.csv` file in the parent `data/` directory), with each folder containing the B-cell receptor sequencing annotation file from Cellranger (`filtered_contig_annotations_[SAMPLE].csv`) and the associated FASTA file (`filtered_contig_[SAMPLE].fasta`).
 
 The directory contents should be organized as follows:
 
