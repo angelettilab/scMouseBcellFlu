@@ -5,7 +5,7 @@
 /data/cellranger/*/
 /data/immcantation/*/
 /data/Jay
-/data/VDJ_OTUs
+/data/VDJ_OTUs/*/
 /data/rna_fastq
 /data/rna_velocity
 /TEST
