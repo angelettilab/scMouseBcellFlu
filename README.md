@@ -2,7 +2,7 @@
 
 This is the repository associated with the publication _Single cell BCR and RNA analysis after respiratory virus infection reveals spatiotemporal dynamics of antigen specific B cell response_.
 
-This repository contains the code and supporting files necessary to reproduce the analyses reported in the publication.
+This repository contains the code and supporting files necessary to reproduce the analyses reported in the publication. In essence, the anlaysis workflow herein was done using the [Sauron](https://github.com/NBISweden/sauron) analysis philosophy. 
 
 
 ## Single-cell RNA-seq analysis
